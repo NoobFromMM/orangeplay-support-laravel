@@ -1,6 +1,6 @@
 # Implementation Scope Skill
 
-Use this skill to prevent broad changes.
+Use this skill to keep work narrow and safe.
 
 ## Scope Rules
 - One task = one feature or one bug.
@@ -17,8 +17,8 @@ State:
 
 ## Stop Conditions
 Stop and report if:
-- required schema change is discovered
+- scope expands
+- a required schema change appears
 - destructive command is needed
-- feature scope expands
 - secrets are needed
 - a locked feature fails
