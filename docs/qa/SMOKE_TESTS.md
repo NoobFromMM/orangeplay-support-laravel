@@ -125,3 +125,19 @@ Assertions:
 ```bash
 php artisan smoke:f3
 ```
+
+---
+
+## Webhook Events Smoke Expected
+
+Smoke tests without real Telegram network calls.
+
+Test cases:
+1. `hi` → webhook event logged, channel=telegram, external_event_id=update_id, payload.message.text=hi, status=processed, processed_at set, F1 greeting still works
+2. `xyzzyblah` → webhook event logged, status=processed, conversation status=Needs Reply, no outbound bot reply
+
+### Run
+
+```bash
+php artisan smoke:webhook-events
+```

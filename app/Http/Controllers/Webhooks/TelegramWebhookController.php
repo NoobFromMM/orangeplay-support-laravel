@@ -3,12 +3,14 @@
 namespace App\Http\Controllers\Webhooks;
 
 use App\Http\Controllers\Controller;
+use App\Models\WebhookEvent;
 use App\Services\Support\ConversationService;
 use App\Services\Support\FaqMatcher;
 use App\Services\Telegram\TelegramBotService;
 use App\Services\Telegram\TelegramUpdateNormalizer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class TelegramWebhookController extends Controller
 {
@@ -20,40 +22,95 @@ class TelegramWebhookController extends Controller
         TelegramBotService $botService,
     ): JsonResponse {
         $update = $request->all();
-        $normalized = $normalizer->normalize($update);
 
-        $customer = $conversationService->findOrCreateCustomer(
-            $normalized['platform'],
-            $normalized['platform_user_id'],
-            [
-                'display_name' => $normalized['display_name'],
-                'username' => $normalized['username'],
-            ]
-        );
+        $event = WebhookEvent::create([
+            'channel' => 'telegram',
+            'event_type' => $this->detectEventType($update),
+            'external_event_id' => (string) ($update['update_id'] ?? ''),
+            'external_user_id' => $this->extractUserId($update),
+            'payload' => $update,
+            'status' => 'received',
+            'attempts' => 1,
+        ]);
 
-        $conversation = $conversationService->findOrCreateConversation($customer);
+        try {
+            $normalized = $normalizer->normalize($update);
 
-        $conversationService->saveInboundMessage($conversation, $normalized);
-
-        $matchedEntry = $faqMatcher->match($normalized['text']);
-
-        if ($matchedEntry) {
-            $replyText = $matchedEntry->answer_text;
-
-            $chatId = $normalized['platform_user_id'];
-            $botService->sendMessage($chatId, $replyText);
-
-            $conversationService->saveOutboundMessage(
-                $conversation,
+            $customer = $conversationService->findOrCreateCustomer(
                 $normalized['platform'],
-                $replyText
+                $normalized['platform_user_id'],
+                [
+                    'display_name' => $normalized['display_name'],
+                    'username' => $normalized['username'],
+                ]
             );
 
-            $conversationService->setStatus($conversation, 'resolved');
-        } else {
-            $conversationService->setStatus($conversation, 'Needs Reply');
+            $conversation = $conversationService->findOrCreateConversation($customer);
+
+            $conversationService->saveInboundMessage($conversation, $normalized);
+
+            $matchedEntry = $faqMatcher->match($normalized['text']);
+
+            if ($matchedEntry) {
+                $replyText = $matchedEntry->answer_text;
+
+                $chatId = $normalized['platform_user_id'];
+                $botService->sendMessage($chatId, $replyText);
+
+                $conversationService->saveOutboundMessage(
+                    $conversation,
+                    $normalized['platform'],
+                    $replyText
+                );
+
+                $conversationService->setStatus($conversation, 'resolved');
+            } else {
+                $conversationService->setStatus($conversation, 'Needs Reply');
+            }
+
+            $event->update([
+                'status' => 'processed',
+                'processed_at' => now(),
+            ]);
+
+        } catch (\Throwable $e) {
+            $event->update([
+                'status' => 'failed',
+                'failed_at' => now(),
+                'error_message' => mb_substr($e->getMessage(), 0, 1000),
+            ]);
+
+            Log::error('Telegram webhook processing failed', [
+                'webhook_event_id' => $event->id,
+                'error' => $e->getMessage(),
+            ]);
         }
 
         return response()->json(['ok' => true]);
+    }
+
+    protected function detectEventType(array $update): string
+    {
+        if (isset($update['message'])) {
+            return 'message';
+        }
+        if (isset($update['edited_message'])) {
+            return 'edited_message';
+        }
+        if (isset($update['callback_query'])) {
+            return 'callback_query';
+        }
+
+        return 'unknown';
+    }
+
+    protected function extractUserId(array $update): string
+    {
+        $container = $update['message']
+            ?? $update['edited_message']
+            ?? $update['callback_query']
+            ?? [];
+
+        return (string) ($container['from']['id'] ?? '');
     }
 }

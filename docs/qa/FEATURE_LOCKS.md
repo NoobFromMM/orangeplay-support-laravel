@@ -45,6 +45,7 @@
 ---
 
 ## Pending Features
+- W1/W2 Webhook Events Raw Logging — pending manual test (smoke: `php artisan smoke:webhook-events`)
 - F4 Architecture Alignment Audit
 - F5 Image preview
 - F5 Payment screenshot
