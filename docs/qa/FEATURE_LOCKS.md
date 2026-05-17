@@ -15,8 +15,22 @@
 
 ---
 
+### F2 — DB FAQ Auto Reply
+**Status**: LOCKED
+
+**Manual evidence**:
+- Real Telegram user sent `hi`, `တစ်လဘယ်လောက်လဲ`, `သက်တမ်းတိုးချင်လို့`, `မင်ဘာဝင်ချင်တယ်`, `kpay နံပါတ်ပေးပါ`, `xyzzy123blah`
+- Greeting matched and replied correctly
+- Pricing matched without payment account number
+- Payment account matched with correct account info
+- Unknown text produced no bot reply, status = Needs Reply
+- Dashboard labels correct
+
+**Smoke**: `php artisan smoke:f2`
+
+---
+
 ## Pending Features
-- F2 DB FAQ auto replies (smoke: `php artisan smoke:f2`)
 - F3 Admin reply to Telegram
 - F4 Image preview
 - F5 Payment screenshot

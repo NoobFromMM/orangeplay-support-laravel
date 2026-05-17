@@ -64,12 +64,23 @@
 
 | Step | Input | Expected Category | Checklist |
 |------|-------|-------------------|-----------|
-| 1 | `hi` | greeting | [ ] reply correct |
-| 2 | `တစ်လဘယ်လောက်လဲ` | pricing | [ ] contains "၁လ", "၅၀၀၀" |
-| 3 | `သက်တမ်းတိုးချင်လို့` | pricing | [ ] NO payment account number |
-| 4 | `မင်ဘာဝင်ချင်တယ်` | pricing | [ ] contains pricing info |
-| 5 | `kpay နံပါတ်ပေးပါ` | payment | [ ] contains "Kpay", "09964349887" |
-| 6 | `xyzzy123blah` | unknown | [ ] no reply, status "Needs Reply" |
+| 1 | `hi` | greeting | [x] reply correct |
+| 2 | `တစ်လဘယ်လောက်လဲ` | pricing | [x] contains "၁လ", "၅၀၀၀" |
+| 3 | `သက်တမ်းတိုးချင်လို့` | pricing | [x] NO payment account number |
+| 4 | `မင်ဘာဝင်ချင်တယ်` | pricing | [x] contains pricing info |
+| 5 | `kpay နံပါတ်ပေးပါ` | payment | [x] contains "Kpay", "09964349887" |
+| 6 | `xyzzy123blah` | unknown | [x] no reply, status "Needs Reply" |
+
+### Pass Record
+
+| Field | Value |
+|-------|-------|
+| Date | 2026-05-17 |
+| Tester | Myat Thaw Maung |
+| Telegram user | @NoobFromMM |
+| All cases matched | Yes |
+| Dashboard labels correct | Yes |
+| Result | **PASS** |
 
 ### Result Template
 ```text
