@@ -31,7 +31,7 @@
 ---
 
 ## Pending Features
-- F3 Admin reply to Telegram
+- F3 Admin Reply — pending manual test (smoke: `php artisan smoke:f3`)
 - F4 Image preview
 - F5 Payment screenshot
 - F6 Viber channel

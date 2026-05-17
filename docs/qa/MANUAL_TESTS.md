@@ -97,8 +97,38 @@ OK/Fail:
 Issues:
 ```
 
-## F3 — Admin Reply
-Pending.
+## F3 — Admin Reply from Dashboard to Telegram
+
+### Steps
+1. Make sure a real Telegram customer exists by sending `hi` to the bot first.
+2. Open the customer conversation page at `/customers/telegram/{user_id}`.
+3. Type a reply (e.g., "This is a test reply from admin") in the textarea.
+4. Click "Send Reply".
+5. Confirm the customer receives the message in Telegram.
+6. Check the dashboard timeline — admin reply appears with sender_type "admin".
+7. Confirm conversation status changes to `in_chat`.
+
+### Manual Pass Checklist
+
+| Step | Checklist |
+|------|-----------|
+| Admin reply form visible | [ ] |
+| Message sent via Telegram | [ ] |
+| Admin message saved in timeline | [ ] |
+| sender_type = admin | [ ] |
+| Conversation status = in_chat | [ ] |
+
+### Result Template
+```text
+F3 Manual Test
+Telegram user:
+Reply form visible: yes/no
+Telegram message received: yes/no
+Timeline shows admin reply: yes/no
+Status changed to in_chat: yes/no
+OK/Fail:
+Issues:
+```
 
 ## F4 — Image Preview
 Pending.

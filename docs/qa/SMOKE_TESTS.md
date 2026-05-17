@@ -101,3 +101,27 @@ All replies:
 ```bash
 php artisan smoke:f2
 ```
+
+---
+
+## F3 Smoke Expected
+
+Smoke tests without real Telegram network calls. Uses Http::fake.
+
+Test cases:
+1. Successful admin reply with chat_id 555000 and text "Hello from admin"
+2. Failed Telegram send (403) — no admin message saved
+
+Assertions:
+- Telegram send succeeds for valid chat_id
+- Admin outbound message saved with direction=outbound, sender_type=admin
+- metadata.source = dashboard
+- Conversation status = in_chat
+- Timeline order = created_at ASC, id ASC
+- Failed send: no admin message saved, status unchanged
+
+### Run
+
+```bash
+php artisan smoke:f3
+```

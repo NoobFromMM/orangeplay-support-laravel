@@ -33,6 +33,40 @@
             @endif
         </div>
 
+        @if (session('success'))
+            <div class="bg-green-100 border border-green-200 text-green-800 px-4 py-3 rounded mb-6">
+                {{ session('success') }}
+            </div>
+        @endif
+        @if (session('error'))
+            <div class="bg-red-100 border border-red-200 text-red-800 px-4 py-3 rounded mb-6">
+                {{ session('error') }}
+            </div>
+        @endif
+        @if ($errors->any())
+            <div class="bg-red-100 border border-red-200 text-red-800 px-4 py-3 rounded mb-6">
+                @foreach ($errors->all() as $error)
+                    <p>{{ $error }}</p>
+                @endforeach
+            </div>
+        @endif
+
+        @if ($customer->platform === 'telegram')
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 class="text-lg font-semibold mb-4">Reply</h2>
+            <form method="POST" action="/customers/{{ $customer->platform }}/{{ $customer->platform_user_id }}/reply">
+                @csrf
+                <textarea name="message" rows="3" maxlength="4000"
+                    class="w-full border border-gray-300 rounded p-3 text-sm focus:outline-none focus:border-blue-400"
+                    placeholder="Type your reply..." required>{{ old('message') }}</textarea>
+                <button type="submit"
+                    class="mt-3 px-5 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700">
+                    Send Reply
+                </button>
+            </form>
+        </div>
+        @endif
+
         <div class="bg-white rounded-lg shadow p-6">
             <h2 class="text-lg font-semibold mb-4">Timeline</h2>
             @forelse ($messages as $message)
@@ -40,7 +74,7 @@
                     <div class="flex items-start justify-between">
                         <div>
                             <span class="inline-block px-2 py-0.5 text-xs rounded
-                                {{ $message->sender_type === 'customer' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800' }}">
+                                {{ $message->sender_type === 'customer' ? 'bg-blue-100 text-blue-800' : ($message->sender_type === 'admin' ? 'bg-green-100 text-green-800' : 'bg-purple-100 text-purple-800') }}">
                                 {{ $message->sender_type }}
                             </span>
                             <span class="inline-block px-2 py-0.5 text-xs rounded ml-1

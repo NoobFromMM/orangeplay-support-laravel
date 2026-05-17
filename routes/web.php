@@ -8,6 +8,7 @@ Route::post('/webhooks/telegram', TelegramWebhookController::class);
 
 Route::get('/dashboard', [DashboardController::class, 'index']);
 Route::get('/customers/{platform}/{platformUserId}', [DashboardController::class, 'showConversation']);
+Route::post('/customers/{platform}/{platformUserId}/reply', [DashboardController::class, 'sendReply']);
 
 Route::get('/', function () {
     return view('welcome');

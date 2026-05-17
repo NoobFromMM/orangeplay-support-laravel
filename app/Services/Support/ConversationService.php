@@ -38,7 +38,7 @@ class ConversationService
     public function findOrCreateConversation(Customer $customer): Conversation
     {
         $conversation = Conversation::where('customer_id', $customer->id)
-            ->whereIn('status', ['new', 'open', 'resolved'])
+            ->whereIn('status', ['new', 'open', 'resolved', 'in_chat'])
             ->orderBy('created_at', 'desc')
             ->first();
 
@@ -98,6 +98,29 @@ class ConversationService
     {
         $conversation->status = $status;
         $conversation->save();
+    }
+
+    public function saveAdminOutboundMessage(
+        Conversation $conversation,
+        string $platform,
+        string $text,
+        string $messageType = 'text',
+        ?array $metadata = null,
+    ): Message {
+        $message = Message::create([
+            'conversation_id' => $conversation->id,
+            'customer_id' => $conversation->customer_id,
+            'platform' => $platform,
+            'direction' => 'outbound',
+            'sender_type' => 'admin',
+            'message_type' => $messageType,
+            'text' => $text,
+            'metadata' => $metadata,
+        ]);
+
+        $this->touchConversation($conversation);
+
+        return $message;
     }
 
     protected function touchConversation(Conversation $conversation): void
