@@ -2,203 +2,169 @@
 
 Date: 2026-05-17
 
----
+This audit is report-only. It compares the current Laravel MVP to the longer-term target architecture without proposing code changes.
 
-## 1. Current MVP Summary
+## Current MVP Summary
 
-### What exists now
+The repository is a small Laravel-first Telegram MVP with a Blade dashboard.
 
-**Routes (5):**
-- `GET /` — welcome page
-- `GET /dashboard` — customer list
-- `GET /customers/{platform}/{platformUserId}` — conversation timeline + reply form
-- `POST /customers/{platform}/{platformUserId}/reply` — admin reply
-- `POST /webhooks/telegram` — Telegram webhook receiver
+Routes in place:
+- `POST /webhooks/telegram` for inbound Telegram updates
+- `GET /dashboard` for the customer list
+- `GET /customers/{platform}/{platformUserId}` for a conversation timeline
+- `POST /customers/{platform}/{platformUserId}/reply` for admin replies
+- `GET /` for the default welcome page
 
-**Models (4 app + 1 stock):**
-- `Customer` — platform + platform_user_id unique, display_name, username
-- `Conversation` — customer_id FK, status, last_message_at (datetime cast)
-- `Message` — customer_id + conversation_id FK, platform, direction, sender_type, message_type, text, raw_payload (json), metadata (json)
-- `FaqEntry` — intent_code unique, keywords (json), answer_text, priority, is_active
-- `User` — stock Laravel (unused)
+Core application pieces:
+- `TelegramWebhookController` receives Telegram payloads, normalizes them, stores messages, runs FAQ matching, and decides whether to auto-reply or mark a conversation as needing human help
+- `DashboardController` lists customers, renders timelines, and sends admin replies back to Telegram
+- `TelegramUpdateNormalizer` converts Telegram webhook payloads into a common internal message shape
+- `ConversationService` creates customers and conversations, stores inbound/outbound/admin messages, and updates status
+- `FaqMatcher` handles DB-backed keyword matching
+- `TelegramBotService` sends outbound Telegram text messages directly
 
-**Services (5):**
-- `TelegramUpdateNormalizer` — raw Telegram payload to normalized shape
-- `TelegramBotService` — sends text via Bot API, reads token from env
-- `ConversationService` — findOrCreate customer/conversation, save inbound/outbound/admin messages, setStatus
-- `GreetingMatcher` — hardcoded greeting check (legacy, unused in controller since F2)
-- `FaqMatcher` — DB-backed keyword matching with priority ordering
+Current persistence model:
+- `customers` stores platform, platform_user_id, display_name, and username
+- `conversations` stores customer_id, status, and last_message_at
+- `messages` stores conversation_id, customer_id, platform, direction, sender_type, message_type, text, raw_payload, and metadata
+- `faq_entries` stores the FAQ knowledge base
 
-**Controllers (2):**
-- `TelegramWebhookController` — full inbound flow: normalize, save, FAQ match, reply or set Needs Reply
-- `DashboardController` — index, showConversation, sendReply (Telegram only)
+Locked behavior already proven by smoke tests:
+- F1 Telegram Greeting Flow
+- F2 DB FAQ Auto Reply
+- F3 Admin Reply from Dashboard to Telegram
 
-**Commands (4):**
-- `smoke:f1` — F1 greeting flow smoke test
-- `smoke:f2` — F2 FAQ auto reply smoke test (10 cases)
-- `smoke:f3` — F3 admin reply smoke test (success + failure)
-- `smoke:locked` — runs F1+F2+F3 sequentially
+## Target Architecture Gap
 
-**Database tables (5 app + 7 stock):**
-- customers, conversations, messages, faq_entries (+ users, sessions, cache, jobs)
+The target architecture is a broader omnichannel support backend with a future React dashboard. The current MVP covers only a narrow slice of that target.
 
-**Views (2):**
-- dashboard/index.blade.php — customer table
-- dashboard/conversation.blade.php — conversation timeline + reply form
+Key gaps:
+- No `webhook_events` table or equivalent raw event log
+- No explicit channel adapter boundary
+- No `support_customers` / `support_identities` split
+- No `support_conversations` / `support_messages` naming alignment
+- No queue-backed outbound job flow
+- No dedicated API layer for a future React dashboard
+- No Viber or Facebook Messenger channel support
+- No agent/auth layer for the dashboard
+- No shared message/event envelope beyond the Telegram-specific normalizer
 
-**Locked features:** F1, F2, F3
+## Gap By Target Area
 
----
+### Laravel backend
+Current state:
+- Laravel is already the source of truth
+- Business logic, persistence, and dashboard rendering all live in the app
 
-## 2. Alignment with Target Architecture
+Gap:
+- The backend is still organized around a single Telegram path instead of a channel-neutral support domain
 
-| Target Component | Current State | Gap | Priority |
-|-----------------|---------------|-----|----------|
-| Channel Adapter Pattern | Partially — Telegram-specific normalizer/service exist but no interface | Missing abstraction layer | Do now |
-| support_customers | Exists as `customers` table | Naming not aligned; no channel identity concept | Later |
-| support_channel_identities | Missing | Single customer can only have one platform+id pair, no multi-channel yet | Later |
-| support_conversations | Exists as `conversations` table | Works fine for single channel; status filter limited | Later |
-| support_messages | Exists as `messages` table | Raw payload stores full webhook, but no separate event log | Later |
-| webhook_events | Missing | No raw event backup before normalization; if normalizer fails, event lost | Should do now |
-| support_agents | Missing | No agent/auth model; dashboard has no login | Later |
-| internal notes | Missing | No admin notes on conversations | Later |
-| queues/jobs | Exists (stock jobs table) | Not used; sendMessage is synchronous, no retry on failure | Later |
-| outgoing message service | Partially — TelegramBotService | No outbox/retry pattern; send failures are fire-and-forget | Later |
-| React dashboard | Missing | Current Blade MVP; no API layer for future React | Later |
-| WebSocket/realtime | Missing | Dashboard requires manual refresh | Later |
-| payment_cases | Missing | Not yet built | Later |
-| admin_notes | Missing | Not yet built | Later |
+### Future React dashboard
+Current state:
+- The dashboard is Blade-based and server rendered
 
----
+Gap:
+- There is no API-first boundary yet for a later React inbox
+- The current UI is tightly coupled to controller/view rendering
 
-## 3. Current Risks
+### Channel adapters
+Current state:
+- Telegram has a normalizer and a bot sender, but they are not wrapped behind a common adapter abstraction
 
-### High risk
+Gap:
+- Adding Viber or Messenger would likely duplicate controller and service logic unless the adapter boundary is introduced later
 
-**A. No raw webhook event backup**
-Telegram sends a webhook, the normalizer processes it, and the raw payload is stored in `messages.raw_payload`. But if normalizer throws an exception before reaching the message save step, the event is lost. There is no separate `webhook_events` table that captures the raw payload first, before normalization. Every other channel we add will have this same vulnerability.
+### `webhook_events`
+Current state:
+- Raw payload is stored inside `messages.raw_payload` after processing
 
-**B. Channel logic coupling**
-`TelegramWebhookController` knows about both Telegram normalization AND FAQ matching AND message saving. Adding Viber would require a parallel controller or a switch/case. The channel-specific differences (how to extract user ID, display name, text) are not behind an interface. Risk: controller gets bloated with per-channel if/else.
+Gap:
+- There is no pre-normalization raw event archive
+- A normalizer failure can still lose the original inbound event
 
-**C. No queue or retry on message sending**
-`TelegramBotService::sendMessage` is called synchronously in the webhook handler and dashboard reply. If Telegram API is down or returns 429, the send fails silently (returns false, controller shows error). No job is queued for retry. Risk: lost admin replies and bot replies under load or API issues.
+### `support_customers` / `support_identities` / `support_conversations` / `support_messages`
+Current state:
+- The app uses `customers`, `conversations`, and `messages`
+- A customer is currently tied to a single platform + platform_user_id record
 
-**D. Dashboard has no auth**
-Anyone who knows the URL can read all customer conversations and send replies. Risk: data exposure, spam, abuse. This is acceptable for MVP manual testing but is a blocker for production.
+Gap:
+- The current schema does not separate person-level customer data from channel identities
+- The naming is not yet aligned with the target support domain
+- Multi-channel identity linking is not modeled yet
 
-### Medium risk
+### Queue / jobs
+Current state:
+- Laravel ships with a jobs table, but the app sends Telegram messages synchronously
 
-**E. Table naming divergence from target**
-Current tables are `customers`, `conversations`, `messages` (no `support_` prefix). Target architecture expects `support_` prefix. Renaming later is not hard but requires migration planning.
+Gap:
+- Outbound sending has no queued retry path
+- Message send failures are handled immediately at request time
 
-**F. ConversationService status filter rigidity**
-`findOrCreateConversation` filters by `['new', 'open', 'resolved', 'in_chat']`. Adding a new status requires remembering to update this array. Risk: forgotten status causes duplicate conversations.
+### Future Viber / Messenger
+Current state:
+- Telegram is the only live channel
 
-**G. Blade MVP limitations**
-Current dashboard is server-rendered Blade with inline CSS. Works for MVP. Cannot scale to rich realtime inbox, search, or agent multi-tasking. Adding more features to Blade will make React migration harder.
+Gap:
+- There is no shared channel contract or shared normalization layer ready for additional channels
+- New channels would have to fit into Telegram-shaped code unless the boundary is introduced first
 
-### Low risk
+## Risks
 
-**H. Missing message delivery status**
-Messages have no `delivered_at` or `delivery_status` field. We don't know if Telegram actually received the bot reply or admin reply. Currently we assume success if HTTP 200.
+High risk:
+- Raw webhook loss if normalization or downstream handling fails before the payload is safely recorded
+- Controller coupling to Telegram-specific processing, FAQ logic, and outbound delivery
+- Synchronous outbound delivery can fail under API outages or throttling without retry
+- Dashboard access is open by default, which is acceptable for MVP testing but not for production use
 
----
+Medium risk:
+- Schema naming and domain naming will drift further from the target if new features keep landing in the current `customers / conversations / messages` shape
+- Conversation status handling is currently central but still string-based, so new states can be missed by helper queries
+- A Blade-only dashboard is fine for MVP work, but it raises the eventual React migration cost if too much logic accumulates in the view layer
 
-## 4. Recommended Next Refactor Sequence
+Low risk:
+- `GreetingMatcher` still exists as legacy support code, so there is some concept overlap with the DB FAQ matcher
+- The app currently assumes Telegram send success based on HTTP success, not on a deeper delivery lifecycle
 
-### R1: Add webhook_events raw logging table
+## Recommended Safe Refactor Sequence
 
-**Goal:** Ensure every incoming webhook is stored raw before any processing. Decouples receipt from normalization.
+1. Add a `webhook_events` raw archive first
+   - This is the smallest architectural hardening step
+   - It protects inbound data before normalization or business logic runs
 
-**Files likely affected:**
-- `database/migrations/` — new migration
-- `app/Models/WebhookEvent.php` — new model
-- `app/Http/Controllers/Webhooks/TelegramWebhookController.php` — save raw event first
-- `app/Services/Support/WebhookEventService.php` — new service (optional)
-- `app/Console/Commands/SmokeF1.php` — may need slight update
+2. Introduce a channel adapter boundary
+   - This keeps Telegram behavior intact while making later channels less invasive
+   - It should isolate normalization and outbound transport concerns
 
-**Smoke tests to protect:** F1, F2, F3
-**Manual test needed:** Send `hi` via Telegram, verify event row created
-**Risk level:** Low — add-only, no breaking change to existing tables
+3. Split customer identity from channel identity
+   - This is the point where a person can be linked to multiple channels
+   - It sets up the later support-domain naming cleanly
 
-### R2: Introduce ChannelInterface + refactor Telegram behind it
+4. Add a queued outbound path
+   - Telegram sends can then be retried and observed more reliably
+   - It reduces request-time coupling to third-party availability
 
-**Goal:** Create a `ChannelInterface` with methods like `normalize(array $raw): array`, `sendMessage(string $chatId, string $text): bool`. Make `TelegramChannelService` implement it. Update controller to depend on interface.
+5. Add an authenticated dashboard/API boundary
+   - This is the step that makes a future React inbox realistic
+   - It also improves the production security posture
 
-**Files likely affected:**
-- `app/Contracts/ChannelInterface.php` — new
-- `app/Services/Channels/TelegramChannelService.php` — wraps TelegramNormalizer + TelegramBotService
-- `app/Http/Controllers/Webhooks/TelegramWebhookController.php` — use interface
-- `app/Services/Support/ConversationService.php` — may accept channel param
+6. Add Viber and Messenger adapters after the boundary exists
+   - This avoids cloning Telegram controller logic
+   - It keeps the omnichannel expansion manageable
 
-**Smoke tests to protect:** F1, F2, F3
-**Manual test needed:** Send `hi`, admin reply, verify same behavior
-**Risk level:** Medium — refactors existing working code
+## Next Single Task Recommendation
 
-### R3: Evolve customers to support channel identities
+Recommended next task:
+- Add `webhook_events` as a raw inbound archive before normalization
 
-**Goal:** Add `channel_identities` table so one customer can have multiple platform identities (Telegram + Viber + Messenger). Customers table becomes the person, channel_identities becomes the per-platform link.
+Why this is the safest next step:
+- It is additive
+- It does not change locked Telegram behavior
+- It protects the most fragile part of the current flow
+- It creates a stable base for every future channel
 
-**Files likely affected:**
-- `database/migrations/` — new table
-- `app/Models/ChannelIdentity.php` — new
-- `app/Models/Customer.php` — add relation
-- `app/Services/Support/ConversationService.php` — update lookups
-- Dashboard views
+## Locked Gate Reminder
 
-**Smoke tests to protect:** F1, F2, F3
-**Risk level:** Medium — schema change, backward compat needed
-
-### R4: Add SupportAgent model + basic auth
-
-**Goal:** Add agents table, middleware to protect dashboard. Simple login (Laravel default or token-based).
-
-**Files likely affected:**
-- `database/migrations/` — agents table or extend users
-- `app/Models/SupportAgent.php`
-- `app/Http/Middleware/` — dashboard auth
-- Routes
-
-**Risk level:** Medium — changes dashboard access patterns
-
-### R5: React dashboard later
-
-**Goal:** Replace Blade dashboard with React + API endpoints. Backend exposes JSON API for conversations, messages, reply. Frontend polls or uses WebSocket.
-
-**Prerequisite:** R2 (channel interface), R3 (channel identities), R4 (auth) should be done first.
-
-**Risk level:** High — large scope, requires frontend tooling
-
----
-
-## 5. Recommendation: What to Do Next
-
-**Recommended next task: R1 — Add webhook_events raw logging table**
-
-**Why:**
-
-1. **Safest first step.** R1 is add-only. No existing code behavior changes. No renaming. No breaking smoke tests.
-
-2. **Reduces data loss risk.** Every future channel (Viber, Messenger) will benefit from a single raw event log before normalization. Without it, debugging webhook issues requires guessing from normalized messages.
-
-3. **Small scope.** One migration, one model, one line in the webhook controller. Less than 30 minutes to implement and test.
-
-4. **Does not block anything.** R2-R5 can proceed in any order after R1. R1 does not create coupling or lock us into any architecture choice.
-
-5. **Matches AGENTS.md pattern.** One task = one small feature. Manual test. Smoke test. Lock. Commit.
-
-**Alternative skipped: Starting React dashboard (R5)**
-Too large, too early. Backend foundation (channels, identities, auth) is not stable enough. Building React on an unstable API means rewriting the React layer later.
-
-**Alternative skipped: Adding Viber/Messenger (F6/F7)**
-Should wait until channel interface (R2) exists. Without the interface, adding Viber duplicates Telegram controller logic.
-
----
-
-## 6. Locked Gate Reminder
-
-Every future task must run these BEFORE commit:
+Before any future commit in this repo, run:
 
 ```bash
 php artisan test
@@ -208,7 +174,4 @@ php artisan smoke:f3
 php artisan smoke:locked
 ```
 
-If a new feature is added:
-- Create a feature-specific smoke command (e.g., `smoke:f4`)
-- Add it to `smoke:locked` AFTER manual pass
-- Manual pass before locking
+Do not lock a new feature until the manual pass is complete and the smoke coverage has been updated.
