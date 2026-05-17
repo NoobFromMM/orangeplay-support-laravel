@@ -40,8 +40,51 @@
 | Status | Resolved |
 | Result | **PASS** |
 
-## F2 — FAQ Pricing/Payment Text
-Pending.
+## F2 — DB FAQ Auto Replies
+
+### Steps
+1. Run `php artisan db:seed --class=FaqSeeder` to seed FAQ entries.
+2. Send `hi` to the Telegram bot.
+   - Expected: greeting reply, status Resolved.
+3. Send `တစ်လဘယ်လောက်လဲ` to the bot.
+   - Expected: pricing reply with "၁လ", "၅၀၀၀", status Resolved.
+4. Send `သက်တမ်းတိုးချင်လို့` to the bot.
+   - Expected: pricing reply (NOT payment account number), status Resolved.
+5. Send `မင်ဘာဝင်ချင်တယ်` to the bot.
+   - Expected: pricing reply, status Resolved.
+6. Send `kpay နံပါတ်ပေးပါ` to the bot.
+   - Expected: payment account reply with "Kpay", "09964349887", status Resolved.
+7. Send `xyzzy123blah` to the bot.
+   - Expected: NO bot reply, status "Needs Reply".
+8. Open `/dashboard`.
+   - Confirm customer appears.
+   - Confirm correct status labels (Resolved / Needs Reply).
+
+### Manual Pass Checklist
+
+| Step | Input | Expected Category | Checklist |
+|------|-------|-------------------|-----------|
+| 1 | `hi` | greeting | [ ] reply correct |
+| 2 | `တစ်လဘယ်လောက်လဲ` | pricing | [ ] contains "၁လ", "၅၀၀၀" |
+| 3 | `သက်တမ်းတိုးချင်လို့` | pricing | [ ] NO payment account number |
+| 4 | `မင်ဘာဝင်ချင်တယ်` | pricing | [ ] contains pricing info |
+| 5 | `kpay နံပါတ်ပေးပါ` | payment | [ ] contains "Kpay", "09964349887" |
+| 6 | `xyzzy123blah` | unknown | [ ] no reply, status "Needs Reply" |
+
+### Result Template
+```text
+F2 Manual Test
+Telegram user:
+hi → greeting: yes/no
+တစ်လဘယ်လောက်လဲ → pricing: yes/no
+သက်တမ်းတိုးချင်လို့ → pricing (no payment number): yes/no
+မင်ဘာဝင်ချင်တယ် → pricing: yes/no
+kpay နံပါတ်ပေးပါ → payment account: yes/no
+xyzzy123blah → no reply / Needs Reply: yes/no
+Dashboard labels correct: yes/no
+OK/Fail:
+Issues:
+```
 
 ## F3 — Admin Reply
 Pending.

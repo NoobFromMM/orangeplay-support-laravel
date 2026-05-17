@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Webhooks;
 
 use App\Http\Controllers\Controller;
 use App\Services\Support\ConversationService;
-use App\Services\Support\GreetingMatcher;
+use App\Services\Support\FaqMatcher;
 use App\Services\Telegram\TelegramBotService;
 use App\Services\Telegram\TelegramUpdateNormalizer;
 use Illuminate\Http\JsonResponse;
@@ -16,7 +16,7 @@ class TelegramWebhookController extends Controller
         Request $request,
         TelegramUpdateNormalizer $normalizer,
         ConversationService $conversationService,
-        GreetingMatcher $greetingMatcher,
+        FaqMatcher $faqMatcher,
         TelegramBotService $botService,
     ): JsonResponse {
         $update = $request->all();
@@ -35,8 +35,10 @@ class TelegramWebhookController extends Controller
 
         $conversationService->saveInboundMessage($conversation, $normalized);
 
-        if ($greetingMatcher->isGreeting($normalized['text'])) {
-            $replyText = $greetingMatcher->getReplyText();
+        $matchedEntry = $faqMatcher->match($normalized['text']);
+
+        if ($matchedEntry) {
+            $replyText = $matchedEntry->answer_text;
 
             $chatId = $normalized['platform_user_id'];
             $botService->sendMessage($chatId, $replyText);
@@ -48,6 +50,8 @@ class TelegramWebhookController extends Controller
             );
 
             $conversationService->setStatus($conversation, 'resolved');
+        } else {
+            $conversationService->setStatus($conversation, 'Needs Reply');
         }
 
         return response()->json(['ok' => true]);

@@ -16,7 +16,7 @@
 ---
 
 ## Pending Features
-- F2 FAQ pricing/payment text
+- F2 DB FAQ auto replies (smoke: `php artisan smoke:f2`)
 - F3 Admin reply to Telegram
 - F4 Image preview
 - F5 Payment screenshot

@@ -66,3 +66,38 @@ php artisan smoke:locked
 ```
 
 Runs all locked feature smoke tests. Currently runs `smoke:f1`.
+
+---
+
+## F2 Smoke Expected
+
+Runs smoke tests without real Telegram network calls.
+
+Test cases:
+1. `hi` → greeting reply, status Resolved
+2. `hello` → greeting reply, status Resolved
+3. `တစ်လဘယ်လောက်လဲ` → pricing reply, status Resolved
+4. `သက်တမ်းတိုးချင်လို့` → pricing reply, status Resolved
+5. `သက်တန်းတိုးချင်လို့` → pricing reply, status Resolved
+6. `မင်ဘာဝင်ချင်တယ်` → pricing reply, status Resolved
+7. `member ဝင်ချင်တယ်` → pricing reply, status Resolved
+8. `kpay နံပါတ်ပေးပါ` → payment account reply, status Resolved
+9. `ငွေလွှဲမယ်` → payment account reply, status Resolved
+10. `xyzzy123blah` → no outbound bot reply, status Needs Reply
+
+Pricing reply assertions:
+- Contains "၁လ" and "၅၀၀၀"
+- Does NOT contain "09964349887"
+
+Payment reply assertions:
+- Contains "09964349887"
+- Contains "Kpay"
+
+All replies:
+- Do NOT contain "OrangePlayAI" or "Support Bot"
+
+### Run
+
+```bash
+php artisan smoke:f2
+```
