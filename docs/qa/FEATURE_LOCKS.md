@@ -30,9 +30,23 @@
 
 ---
 
+### F3 — Admin Reply from Dashboard
+**Status**: LOCKED
+
+**Manual evidence**:
+- Admin sent reply from dashboard conversation page
+- Telegram user received the admin message in real time
+- Timeline showed admin outbound message with sender_type=admin
+- Conversation status changed to In Chat / in_chat
+- Dashboard status badges updated correctly
+
+**Smoke**: `php artisan smoke:f3`
+
+---
+
 ## Pending Features
-- F3 Admin Reply — pending manual test (smoke: `php artisan smoke:f3`)
-- F4 Image preview
+- F4 Architecture Alignment Audit
+- F5 Image preview
 - F5 Payment screenshot
 - F6 Viber channel
 - F7 Facebook Messenger channel

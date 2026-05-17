@@ -112,11 +112,22 @@ Issues:
 
 | Step | Checklist |
 |------|-----------|
-| Admin reply form visible | [ ] |
-| Message sent via Telegram | [ ] |
-| Admin message saved in timeline | [ ] |
-| sender_type = admin | [ ] |
-| Conversation status = in_chat | [ ] |
+| Admin reply form visible | [x] |
+| Message sent via Telegram | [x] |
+| Admin message saved in timeline | [x] |
+| sender_type = admin | [x] |
+| Conversation status = in_chat | [x] |
+
+### Pass Record
+
+| Field | Value |
+|-------|-------|
+| Date | 2026-05-17 |
+| Tester | Myat Thaw Maung |
+| Reply delivered to Telegram | Yes |
+| Timeline shows admin message | Yes |
+| Status changed to in_chat | Yes |
+| Result | **PASS** |
 
 ### Result Template
 ```text
