@@ -141,3 +141,19 @@ Test cases:
 ```bash
 php artisan smoke:webhook-events
 ```
+
+---
+
+## Telegram Image Smoke Expected
+
+Smoke tests without real Telegram network calls.
+
+Test cases:
+1. Photo message (no caption) → normalizer detects image type, picks largest photo by file_size, metadata includes telegram_file_id/dimensions, webhook event logged, no bot auto-reply, conversation status=Needs Reply
+2. Photo with caption "hello" → caption preserved in text and metadata
+
+### Run
+
+```bash
+php artisan smoke:telegram-image
+```

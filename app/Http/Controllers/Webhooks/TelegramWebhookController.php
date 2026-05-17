@@ -49,21 +49,25 @@ class TelegramWebhookController extends Controller
 
             $conversationService->saveInboundMessage($conversation, $normalized);
 
-            $matchedEntry = $faqMatcher->match($normalized['text']);
+            if ($normalized['message_type'] === 'text') {
+                $matchedEntry = $faqMatcher->match($normalized['text']);
 
-            if ($matchedEntry) {
-                $replyText = $matchedEntry->answer_text;
+                if ($matchedEntry) {
+                    $replyText = $matchedEntry->answer_text;
 
-                $chatId = $normalized['platform_user_id'];
-                $botService->sendMessage($chatId, $replyText);
+                    $chatId = $normalized['platform_user_id'];
+                    $botService->sendMessage($chatId, $replyText);
 
-                $conversationService->saveOutboundMessage(
-                    $conversation,
-                    $normalized['platform'],
-                    $replyText
-                );
+                    $conversationService->saveOutboundMessage(
+                        $conversation,
+                        $normalized['platform'],
+                        $replyText
+                    );
 
-                $conversationService->setStatus($conversation, 'resolved');
+                    $conversationService->setStatus($conversation, 'resolved');
+                } else {
+                    $conversationService->setStatus($conversation, 'Needs Reply');
+                }
             } else {
                 $conversationService->setStatus($conversation, 'Needs Reply');
             }

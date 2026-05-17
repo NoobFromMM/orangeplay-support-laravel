@@ -96,6 +96,9 @@
         .text-muted { color: #6b7280; }
         .divider { color: #d1d5db; margin: 0 6px; }
         .conversation-started { font-size: .75rem; color: #9ca3af; margin-top: 12px; }
+        .image-placeholder { padding: 40px 20px; text-align: center; background: #f3f4f6; border-radius: 8px; color: #6b7280; font-size: .85rem; }
+        .image-preview img { transition: opacity .2s; }
+        .image-preview img:hover { opacity: .9; }
         @media (max-width: 600px) {
             .customer-header { flex-direction: column; }
             .customer-meta-right { align-items: flex-start; }
@@ -210,13 +213,38 @@
                             'outbound-admin' => 'message-bubble-outbound-admin',
                             default => 'message-bubble-inbound',
                         };
+                        $isImage = $message->message_type === 'image';
+                        $telegramFileId = $message->metadata['telegram_file_id'] ?? null;
+                        $imageCaption = $message->metadata['caption'] ?? null;
                     @endphp
                     <div class="timeline-item">
                         <div class="timeline-header">
                             <span class="sender-badge sender-{{ $message->sender_type }}">{{ $senderLabel }}</span>
                             <span class="timeline-time">{{ $message->created_at->format('M j, Y \a\t g:ia') }}</span>
                         </div>
-                        <div class="message-bubble {{ $bubbleClass }}">{{ $message->text }}</div>
+                        <div class="message-bubble {{ $bubbleClass }}">
+                            @if ($isImage)
+                                <div class="image-preview">
+                                    @if ($telegramFileId)
+                                        <a href="/telegram/file/{{ $telegramFileId }}" target="_blank" rel="noopener">
+                                            <img src="/telegram/file/{{ $telegramFileId }}"
+                                                 alt="Image attachment"
+                                                 loading="lazy"
+                                                 style="max-width:100%;max-height:400px;border-radius:8px;display:block;">
+                                        </a>
+                                    @else
+                                        <div class="image-placeholder">
+                                            &#128247; Image attachment
+                                        </div>
+                                    @endif
+                                </div>
+                                @if ($imageCaption)
+                                    <div style="margin-top:8px;font-size:.85rem;color:#4b5563;">{{ $imageCaption }}</div>
+                                @endif
+                            @else
+                                {{ $message->text }}
+                            @endif
+                        </div>
                     </div>
                 @empty
                     <div style="text-align:center;padding:40px 0" class="text-muted">

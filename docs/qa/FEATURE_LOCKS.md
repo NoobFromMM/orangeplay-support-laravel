@@ -59,6 +59,7 @@
 ---
 
 ## Pending Features
+- F5 Telegram Image Receive + Preview — pending manual test (smoke: `php artisan smoke:telegram-image`)
 - F4 Architecture Alignment Audit
 - F5 Image preview
 - F5 Payment screenshot

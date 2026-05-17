@@ -38,7 +38,7 @@ class ConversationService
     public function findOrCreateConversation(Customer $customer): Conversation
     {
         $conversation = Conversation::where('customer_id', $customer->id)
-            ->whereIn('status', ['new', 'open', 'resolved', 'in_chat'])
+            ->whereIn('status', ['new', 'open', 'resolved', 'in_chat', 'Needs Reply'])
             ->orderBy('created_at', 'desc')
             ->first();
 
