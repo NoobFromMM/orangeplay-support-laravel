@@ -7,78 +7,94 @@
     @fonts
     @if (file_exists(public_path('build/manifest.json')) || file_exists(public_path('hot')))
         @vite(['resources/css/app.css', 'resources/js/app.js'])
-    @else
+    @endif
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f3f4f6; color: #1f2937; line-height: 1.5; }
-        .container { max-width: 720px; margin: 0 auto; padding: 24px 16px; }
-        .back-link { display: inline-block; margin-bottom: 16px; font-size: .875rem; color: #2563eb; text-decoration: none; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #f8f9fa; color: #1a1a2e; line-height: 1.6; min-height: 100vh;
+        }
+        .nav { background: #fff; border-bottom: 1px solid #e9ecef; padding: 0 24px; }
+        .nav-inner { max-width: 900px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; height: 56px; }
+        .nav-brand { font-size: 1rem; font-weight: 700; color: #1a1a2e; text-decoration: none; letter-spacing: -.02em; }
+        .nav-brand span { color: #2563eb; }
+        .back-link { display: inline-flex; align-items: center; gap: 4px; font-size: .85rem; color: #2563eb; text-decoration: none; margin-bottom: 16px; }
         .back-link:hover { text-decoration: underline; }
-        .card { background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,.1); padding: 20px; margin-bottom: 16px; }
-        .card h2 { font-size: 1.125rem; font-weight: 600; margin-bottom: 16px; }
-        .customer-header h1 { font-size: 1.25rem; font-weight: 700; margin-bottom: 4px; }
-        .customer-header .meta { font-size: .875rem; color: #6b7280; }
-        .platform-tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: .75rem; background: #e0e7ff; color: #3730a3; }
-        .status-badge { display: inline-block; margin-top: 8px; padding: 3px 12px; border-radius: 9999px; font-size: .75rem; font-weight: 600; }
-        .status-resolved { background: #d1fae5; color: #065f46; }
-        .status-in_chat { background: #fef3c7; color: #92400e; }
-        .status-needs_reply { background: #dbeafe; color: #1e40af; }
-        .status-new, .status-open { background: #dbeafe; color: #1e40af; }
-        .alert { padding: 12px 16px; border-radius: 6px; margin-bottom: 16px; font-size: .875rem; }
-        .alert-success { background: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; }
-        .alert-error { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
-        .reply-form textarea { width: 100%; border: 1px solid #d1d5db; border-radius: 6px; padding: 12px; font-size: .875rem; font-family: inherit; line-height: 1.5; resize: vertical; min-height: 100px; }
-        .reply-form textarea:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59,130,246,.2); }
-        .btn { display: inline-block; padding: 8px 20px; border-radius: 6px; font-size: .875rem; font-weight: 500; cursor: pointer; border: none; }
+        .container { max-width: 780px; margin: 0 auto; padding: 24px; }
+
+        .card { background: #fff; border-radius: 12px; border: 1px solid #e9ecef; padding: 24px; margin-bottom: 16px; }
+        .card h2 { font-size: 1rem; font-weight: 600; margin-bottom: 20px; color: #374151; }
+
+        .customer-header { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 16px; }
+        .customer-avatar { width: 48px; height: 48px; border-radius: 12px; background: #eef2ff; color: #4338ca; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; font-weight: 700; flex-shrink: 0; }
+        .customer-info { flex: 1; min-width: 0; }
+        .customer-info h1 { font-size: 1.2rem; font-weight: 700; line-height: 1.3; word-break: break-word; }
+        .customer-info .meta { margin-top: 4px; font-size: .825rem; color: #6b7280; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; }
+        .customer-meta-right { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; flex-shrink: 0; }
+        .platform-tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: .7rem; font-weight: 600; background: #eef2ff; color: #4338ca; text-transform: capitalize; }
+        .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; flex-shrink: 0; }
+        .status-dot-resolved { background: #10b981; }
+        .status-dot-in_chat { background: #f59e0b; }
+        .status-dot-needs_reply { background: #3b82f6; }
+        .status-dot-new { background: #9ca3af; }
+        .status-badge { display: inline-flex; align-items: center; padding: 4px 12px; border-radius: 9999px; font-size: .75rem; font-weight: 600; white-space: nowrap; }
+        .status-resolved { background: #ecfdf5; color: #059669; }
+        .status-in_chat { background: #fffbeb; color: #d97706; }
+        .status-needs_reply { background: #eff6ff; color: #2563eb; }
+        .status-new, .status-open { background: #f9fafb; color: #6b7280; }
+
+        .alert { padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; font-size: .85rem; }
+        .alert-success { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
+        .alert-error { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+
+        .reply-form label { display: block; font-size: .85rem; font-weight: 600; margin-bottom: 8px; color: #374151; }
+        .reply-form textarea { width: 100%; border: 1px solid #d1d5db; border-radius: 8px; padding: 14px; font-size: .9rem; font-family: inherit; line-height: 1.6; resize: vertical; min-height: 120px; transition: border-color .15s, box-shadow .15s; }
+        .reply-form textarea:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,.12); }
+        .reply-form-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; }
+        .char-count { font-size: .75rem; color: #9ca3af; }
+        .btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 24px; border-radius: 8px; font-size: .875rem; font-weight: 600; cursor: pointer; border: none; transition: background .15s, transform .1s; }
+        .btn:active { transform: scale(.98); }
         .btn-primary { background: #2563eb; color: #fff; }
         .btn-primary:hover { background: #1d4ed8; }
-        .timeline-item { padding: 16px 0; border-bottom: 1px solid #f3f4f6; }
-        .timeline-item:last-child { border-bottom: none; }
-        .timeline-item .sender { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: .7rem; font-weight: 600; text-transform: uppercase; margin-right: 8px; }
-        .sender-customer { background: #dbeafe; color: #1e40af; }
-        .sender-bot { background: #ede9fe; color: #6b21a8; }
-        .sender-admin { background: #d1fae5; color: #065f46; }
-        .timeline-item .time { font-size: .75rem; color: #9ca3af; }
-        .timeline-item .text { margin-top: 8px; font-size: .875rem; white-space: pre-wrap; word-break: break-word; }
+
+        .timeline { position: relative; }
+        .timeline-item { padding: 18px 0; border-bottom: 1px solid #f3f4f6; position: relative; }
+        .timeline-item:last-child { border-bottom: none; padding-bottom: 0; }
+        .timeline-item-inbound { padding-left: 0; }
+        .timeline-item-outbound {  }
+        .timeline-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+        .sender-badge { display: inline-flex; align-items: center; gap: 5px; padding: 2px 10px; border-radius: 6px; font-size: .7rem; font-weight: 600; text-transform: uppercase; letter-spacing: .03em; }
+        .sender-customer { background: #eff6ff; color: #2563eb; }
+        .sender-bot { background: #f5f3ff; color: #7c3aed; }
+        .sender-admin { background: #ecfdf5; color: #059669; }
+        .sender-system { background: #f9fafb; color: #6b7280; }
+        .timeline-time { font-size: .75rem; color: #9ca3af; }
+        .message-bubble {
+            background: #f9fafb;
+            border-radius: 12px;
+            padding: 14px 16px;
+            font-size: .875rem;
+            line-height: 1.65;
+            white-space: pre-wrap;
+            word-break: break-word;
+            margin-top: 4px;
+        }
+        .message-bubble-outbound-bot { background: #f5f3ff; border-top-left-radius: 4px; }
+        .message-bubble-outbound-admin { background: #ecfdf5; border-top-left-radius: 4px; }
+        .message-bubble-inbound { background: #f9fafb; border-top-right-radius: 4px; }
         .text-muted { color: #6b7280; }
+        .divider { color: #d1d5db; margin: 0 6px; }
     </style>
-    @endif
 </head>
 <body>
-    <div class="container">
-        <a href="/dashboard" class="back-link">&larr; Back to Dashboard</a>
-
-        <div class="card customer-header">
-            <h1>{{ $customer->display_name ?? $customer->platform_user_id }}</h1>
-            <p class="meta">
-                @if ($customer->username)
-                    &#64;{{ $customer->username }}
-                    <span style="margin:0 6px">&middot;</span>
-                @endif
-                <span class="platform-tag">{{ $customer->platform }}</span>
-                <span style="margin:0 6px">&middot;</span>
-                ID: {{ $customer->platform_user_id }}
-            </p>
-            @if ($conversation)
-                @php
-                    $status = $conversation->status;
-                    $statusLabel = match($status) {
-                        'resolved' => 'Resolved',
-                        'in_chat' => 'In Chat',
-                        'Needs Reply' => 'Needs Reply',
-                        default => $status,
-                    };
-                    $statusClass = match($status) {
-                        'resolved' => 'status-resolved',
-                        'in_chat' => 'status-in_chat',
-                        'Needs Reply' => 'status-needs_reply',
-                        default => 'status-new',
-                    };
-                @endphp
-                <span class="status-badge {{ $statusClass }}">{{ $statusLabel }}</span>
-            @endif
+    <nav class="nav">
+        <div class="nav-inner">
+            <a href="/dashboard" class="nav-brand">OrangePlay <span>Support</span></a>
+            <a href="/dashboard" class="back-link" style="margin-bottom:0">&larr; Dashboard</a>
         </div>
+    </nav>
 
+    <div class="container">
         @if (session('success'))
             <div class="alert alert-success">{{ session('success') }}</div>
         @endif
@@ -93,43 +109,100 @@
             </div>
         @endif
 
+        {{-- Customer Header --}}
+        <div class="card">
+            <div class="customer-header">
+                <div class="customer-avatar">{{ mb_substr($customer->display_name ?? $customer->platform_user_id, 0, 2) }}</div>
+                <div class="customer-info">
+                    <h1>{{ $customer->display_name ?? $customer->platform_user_id }}</h1>
+                    <div class="meta">
+                        @if ($customer->username)
+                            <span>&#64;{{ $customer->username }}</span>
+                            <span class="divider">&middot;</span>
+                        @endif
+                        <span class="platform-tag">{{ $customer->platform }}</span>
+                        <span class="divider">&middot;</span>
+                        <span>ID {{ $customer->platform_user_id }}</span>
+                    </div>
+                </div>
+                @if ($conversation)
+                    @php
+                        $status = $conversation->status;
+                        $statusLabel = match($status) {
+                            'resolved' => 'Resolved',
+                            'in_chat' => 'In Chat',
+                            'Needs Reply' => 'Needs Reply',
+                            default => $status,
+                        };
+                        $statusKey = match($status) {
+                            'resolved' => 'resolved',
+                            'in_chat' => 'in_chat',
+                            'Needs Reply' => 'needs_reply',
+                            default => 'new',
+                        };
+                    @endphp
+                    <div class="customer-meta-right">
+                        <span class="status-badge status-{{ $statusKey }}">
+                            <span class="status-dot status-dot-{{ $statusKey }}"></span>
+                            {{ $statusLabel }}
+                        </span>
+                    </div>
+                @endif
+            </div>
+        </div>
+
+        {{-- Reply Form --}}
         @if ($customer->platform === 'telegram')
         <div class="card reply-form">
             <h2>Reply to Customer</h2>
             <form method="POST" action="/customers/{{ $customer->platform }}/{{ $customer->platform_user_id }}/reply">
                 @csrf
-                <textarea name="message" rows="4" maxlength="4000"
-                    placeholder="Type your reply..." required>{{ old('message') }}</textarea>
-                <div style="margin-top:12px">
-                    <button type="submit" class="btn btn-primary">Send Reply</button>
+                <label for="reply-text">Your message</label>
+                <textarea id="reply-text" name="message" rows="4" maxlength="4000"
+                    placeholder="Type your reply here..." required>{{ old('message') }}</textarea>
+                <div class="reply-form-footer">
+                    <span class="char-count">Max 4000 characters</span>
+                    <button type="submit" class="btn btn-primary">
+                        &#8593; Send Reply
+                    </button>
                 </div>
             </form>
         </div>
         @endif
 
+        {{-- Timeline --}}
         <div class="card">
             <h2>Timeline</h2>
-            @forelse ($messages as $message)
-                <div class="timeline-item">
-                    <div style="display:flex;align-items:center;justify-content:space-between;">
-                        <div>
-                            @php
-                                $senderLabel = match($message->sender_type) {
-                                    'customer' => 'Customer',
-                                    'bot' => 'Bot',
-                                    'admin' => 'Admin',
-                                    default => $message->sender_type,
-                                };
-                            @endphp
-                            <span class="sender sender-{{ $message->sender_type }}">{{ $senderLabel }}</span>
+            <div class="timeline">
+                @forelse ($messages as $message)
+                    @php
+                        $senderLabel = match($message->sender_type) {
+                            'customer' => 'Customer',
+                            'bot' => 'Bot',
+                            'admin' => 'Admin',
+                            default => ucfirst($message->sender_type),
+                        };
+                        $bubbleClass = match($message->direction . '-' . $message->sender_type) {
+                            'inbound-customer' => 'message-bubble-inbound',
+                            'outbound-bot' => 'message-bubble-outbound-bot',
+                            'outbound-admin' => 'message-bubble-outbound-admin',
+                            default => '',
+                        };
+                    @endphp
+                    <div class="timeline-item timeline-item-{{ $message->direction }}">
+                        <div class="timeline-header">
+                            <span class="sender-badge sender-{{ $message->sender_type }}">{{ $senderLabel }}</span>
+                            <span class="timeline-time">{{ $message->created_at->format('M j, Y \a\t g:ia') }}</span>
                         </div>
-                        <span class="time">{{ $message->created_at->format('Y-m-d H:i:s') }}</span>
+                        <div class="message-bubble {{ $bubbleClass }}">{{ $message->text }}</div>
                     </div>
-                    <p class="text">{{ $message->text }}</p>
-                </div>
-            @empty
-                <p class="text-muted" style="text-align:center;padding:24px 0">No messages yet.</p>
-            @endforelse
+                @empty
+                    <div style="text-align:center;padding:40px 0" class="text-muted">
+                        <div style="font-size:2rem;margin-bottom:8px;opacity:.3">&#128488;</div>
+                        <p>No messages yet.</p>
+                    </div>
+                @endforelse
+            </div>
         </div>
     </div>
 </body>
