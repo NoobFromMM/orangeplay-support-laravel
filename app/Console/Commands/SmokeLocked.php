@@ -3,7 +3,6 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Artisan;
 
 class SmokeLocked extends Command
 {
@@ -14,11 +13,21 @@ class SmokeLocked extends Command
     {
         $this->info('Locked Feature Smoke Tests');
         $this->info('=========================');
+
+        $failed = false;
+
+        if ($this->call('smoke:f1') !== self::SUCCESS) {
+            $failed = true;
+        }
+
+        if ($failed) {
+            $this->newLine();
+            $this->error('One or more locked feature smoke tests FAILED.');
+            return self::FAILURE;
+        }
+
         $this->newLine();
-
-        $this->line('No features locked yet. Run manual tests first.');
-        $this->line('When F1 is locked, this will run smoke:f1.');
-
+        $this->info('All locked feature smoke tests PASSED.');
         return self::SUCCESS;
     }
 }

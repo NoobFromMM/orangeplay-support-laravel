@@ -1,10 +1,21 @@
 # Feature Locks
 
 ## Locked Features
-None yet.
+
+### F1 — Telegram Greeting Flow
+**Status**: LOCKED
+
+**Manual evidence**:
+- Real Telegram user Myat Thaw Maung sent `hi` and `hello`
+- Bot replied with exact greeting text
+- Dashboard DB records created (customer, conversation, messages)
+- Conversation status = Resolved
+
+**Smoke**: `php artisan smoke:f1`
+
+---
 
 ## Pending Features
-- F1 Telegram hi support flow
 - F2 FAQ pricing/payment text
 - F3 Admin reply to Telegram
 - F4 Image preview
