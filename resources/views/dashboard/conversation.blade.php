@@ -14,23 +14,23 @@
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
             background: #f8f9fa; color: #1a1a2e; line-height: 1.6; min-height: 100vh;
         }
-        .nav { background: #fff; border-bottom: 1px solid #e9ecef; padding: 0 24px; }
+        .nav { background: #fff; border-bottom: 1px solid #e9ecef; padding: 0 16px; }
         .nav-inner { max-width: 900px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; height: 56px; }
         .nav-brand { font-size: 1rem; font-weight: 700; color: #1a1a2e; text-decoration: none; letter-spacing: -.02em; }
         .nav-brand span { color: #2563eb; }
-        .back-link { display: inline-flex; align-items: center; gap: 4px; font-size: .85rem; color: #2563eb; text-decoration: none; margin-bottom: 16px; }
-        .back-link:hover { text-decoration: underline; }
-        .container { max-width: 780px; margin: 0 auto; padding: 24px; }
+        .nav-back { font-size: .85rem; color: #2563eb; text-decoration: none; }
+        .nav-back:hover { text-decoration: underline; }
+        .container { max-width: 780px; margin: 0 auto; padding: 24px 16px; }
 
         .card { background: #fff; border-radius: 12px; border: 1px solid #e9ecef; padding: 24px; margin-bottom: 16px; }
-        .card h2 { font-size: 1rem; font-weight: 600; margin-bottom: 20px; color: #374151; }
+        .card h2 { font-size: 1rem; font-weight: 600; margin-bottom: 16px; color: #374151; }
 
-        .customer-header { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 16px; }
+        .customer-header { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 14px; }
         .customer-avatar { width: 48px; height: 48px; border-radius: 12px; background: #eef2ff; color: #4338ca; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; font-weight: 700; flex-shrink: 0; }
         .customer-info { flex: 1; min-width: 0; }
-        .customer-info h1 { font-size: 1.2rem; font-weight: 700; line-height: 1.3; word-break: break-word; }
+        .customer-info h1 { font-size: 1.2rem; font-weight: 700; line-height: 1.4; word-break: break-word; }
         .customer-info .meta { margin-top: 4px; font-size: .825rem; color: #6b7280; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; }
-        .customer-meta-right { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; flex-shrink: 0; }
+        .customer-meta-right { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex-shrink: 0; }
         .platform-tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: .7rem; font-weight: 600; background: #eef2ff; color: #4338ca; text-transform: capitalize; }
         .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; flex-shrink: 0; }
         .status-dot-resolved { background: #10b981; }
@@ -47,50 +47,68 @@
         .alert-success { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
         .alert-error { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
 
-        .reply-form label { display: block; font-size: .85rem; font-weight: 600; margin-bottom: 8px; color: #374151; }
-        .reply-form textarea { width: 100%; border: 1px solid #d1d5db; border-radius: 8px; padding: 14px; font-size: .9rem; font-family: inherit; line-height: 1.6; resize: vertical; min-height: 120px; transition: border-color .15s, box-shadow .15s; }
-        .reply-form textarea:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,.12); }
-        .reply-form-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; }
+        .reply-form .hint { font-size: .8rem; color: #6b7280; margin-bottom: 10px; display: flex; align-items: center; gap: 4px; }
+        .reply-form label { display: block; font-size: .85rem; font-weight: 600; margin-bottom: 6px; color: #374151; }
+        .reply-form textarea { width: 100%; border: 1px solid #d1d5db; border-radius: 8px; padding: 14px; font-size: .9rem; font-family: inherit; line-height: 1.65; resize: vertical; min-height: 130px; transition: border-color .15s, box-shadow .15s; }
+        .reply-form textarea:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,.15); }
+        .reply-form-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; flex-wrap: wrap; gap: 8px; }
         .char-count { font-size: .75rem; color: #9ca3af; }
         .btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 24px; border-radius: 8px; font-size: .875rem; font-weight: 600; cursor: pointer; border: none; transition: background .15s, transform .1s; }
-        .btn:active { transform: scale(.98); }
+        .btn:focus-visible { outline: 3px solid #93c5fd; outline-offset: 1px; }
+        .btn:active { transform: scale(.97); }
         .btn-primary { background: #2563eb; color: #fff; }
         .btn-primary:hover { background: #1d4ed8; }
 
-        .timeline { position: relative; }
-        .timeline-item { padding: 18px 0; border-bottom: 1px solid #f3f4f6; position: relative; }
+        .timeline { }
+        .timeline-item { padding: 20px 0; border-bottom: 1px solid #f3f4f6; position: relative; }
         .timeline-item:last-child { border-bottom: none; padding-bottom: 0; }
-        .timeline-item-inbound { padding-left: 0; }
-        .timeline-item-outbound {  }
-        .timeline-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+        .timeline-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; flex-wrap: wrap; gap: 6px; }
         .sender-badge { display: inline-flex; align-items: center; gap: 5px; padding: 2px 10px; border-radius: 6px; font-size: .7rem; font-weight: 600; text-transform: uppercase; letter-spacing: .03em; }
-        .sender-customer { background: #eff6ff; color: #2563eb; }
-        .sender-bot { background: #f5f3ff; color: #7c3aed; }
-        .sender-admin { background: #ecfdf5; color: #059669; }
-        .sender-system { background: #f9fafb; color: #6b7280; }
-        .timeline-time { font-size: .75rem; color: #9ca3af; }
+        .sender-customer { background: #dbeafe; color: #1e40af; }
+        .sender-bot { background: #ede9fe; color: #6b21a8; }
+        .sender-admin { background: #d1fae5; color: #065f46; }
+        .sender-system { background: #f3f4f6; color: #6b7280; }
+        .timeline-time { font-size: .75rem; color: #9ca3af; white-space: nowrap; }
         .message-bubble {
-            background: #f9fafb;
             border-radius: 12px;
             padding: 14px 16px;
             font-size: .875rem;
-            line-height: 1.65;
+            line-height: 1.7;
             white-space: pre-wrap;
             word-break: break-word;
-            margin-top: 4px;
+            border-left: 3px solid transparent;
         }
-        .message-bubble-outbound-bot { background: #f5f3ff; border-top-left-radius: 4px; }
-        .message-bubble-outbound-admin { background: #ecfdf5; border-top-left-radius: 4px; }
-        .message-bubble-inbound { background: #f9fafb; border-top-right-radius: 4px; }
+        .message-bubble-inbound {
+            background: #f9fafb;
+            border-top-right-radius: 4px;
+            border-left-color: #93c5fd;
+        }
+        .message-bubble-outbound-bot {
+            background: #f5f3ff;
+            border-top-left-radius: 4px;
+            border-left-color: #c4b5fd;
+        }
+        .message-bubble-outbound-admin {
+            background: #ecfdf5;
+            border-top-left-radius: 4px;
+            border-left-color: #6ee7b7;
+        }
         .text-muted { color: #6b7280; }
         .divider { color: #d1d5db; margin: 0 6px; }
+        .conversation-started { font-size: .75rem; color: #9ca3af; margin-top: 12px; }
+        @media (max-width: 600px) {
+            .customer-header { flex-direction: column; }
+            .customer-meta-right { align-items: flex-start; }
+            .reply-form textarea { min-height: 100px; }
+            .card { padding: 16px; }
+        }
     </style>
 </head>
 <body>
     <nav class="nav">
         <div class="nav-inner">
             <a href="/dashboard" class="nav-brand">OrangePlay <span>Support</span></a>
-            <a href="/dashboard" class="back-link" style="margin-bottom:0">&larr; Dashboard</a>
+            <a href="/dashboard" class="nav-back">&larr; Dashboard</a>
         </div>
     </nav>
 
@@ -146,6 +164,9 @@
                             <span class="status-dot status-dot-{{ $statusKey }}"></span>
                             {{ $statusLabel }}
                         </span>
+                        @if ($conversation->created_at)
+                            <div class="conversation-started">Started {{ $conversation->created_at->diffForHumans() }}</div>
+                        @endif
                     </div>
                 @endif
             </div>
@@ -155,6 +176,7 @@
         @if ($customer->platform === 'telegram')
         <div class="card reply-form">
             <h2>Reply to Customer</h2>
+            <div class="hint">&#9993; Reply will be sent to the customer via Telegram.</div>
             <form method="POST" action="/customers/{{ $customer->platform }}/{{ $customer->platform_user_id }}/reply">
                 @csrf
                 <label for="reply-text">Your message</label>
@@ -186,10 +208,10 @@
                             'inbound-customer' => 'message-bubble-inbound',
                             'outbound-bot' => 'message-bubble-outbound-bot',
                             'outbound-admin' => 'message-bubble-outbound-admin',
-                            default => '',
+                            default => 'message-bubble-inbound',
                         };
                     @endphp
-                    <div class="timeline-item timeline-item-{{ $message->direction }}">
+                    <div class="timeline-item">
                         <div class="timeline-header">
                             <span class="sender-badge sender-{{ $message->sender_type }}">{{ $senderLabel }}</span>
                             <span class="timeline-time">{{ $message->created_at->format('M j, Y \a\t g:ia') }}</span>
