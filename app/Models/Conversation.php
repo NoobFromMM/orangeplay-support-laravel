@@ -19,4 +19,11 @@ class Conversation extends Model
     {
         return $this->hasMany(Message::class);
     }
+
+    protected function casts(): array
+    {
+        return [
+            'last_message_at' => 'datetime',
+        ];
+    }
 }
