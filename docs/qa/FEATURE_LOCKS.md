@@ -44,8 +44,21 @@
 
 ---
 
+### W1/W2 — Telegram Webhook Raw Logging
+**Status**: LOCKED
+
+**Manual evidence**:
+- Real Telegram user sent `hi`
+- Webhook event row created with channel=telegram, status=processed
+- Full payload preserved including message.text=hi
+- Existing F1/F2/F3 behavior intact
+- No errors, error_message=null
+
+**Smoke**: `php artisan smoke:webhook-events`
+
+---
+
 ## Pending Features
-- W1/W2 Webhook Events Raw Logging — pending manual test (smoke: `php artisan smoke:webhook-events`)
 - F4 Architecture Alignment Audit
 - F5 Image preview
 - F5 Payment screenshot

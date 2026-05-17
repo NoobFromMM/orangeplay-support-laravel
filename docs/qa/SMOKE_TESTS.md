@@ -65,7 +65,7 @@ ALL ASSERTIONS PASSED
 php artisan smoke:locked
 ```
 
-Runs all locked feature smoke tests. Currently runs `smoke:f1`.
+Runs all locked feature smoke tests. Currently runs `smoke:f1`, `smoke:f2`, `smoke:f3`, and `smoke:webhook-events`.
 
 ---
 
