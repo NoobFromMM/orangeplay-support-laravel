@@ -23,8 +23,19 @@ The Worker is useful here because it already proved it can detect payment screen
 Laravel should treat the Worker as an OCR and payment classification service only.
 
 Suggested environment variables:
-- `PAYMENT_CHECK_WORKER_URL`
-- `PAYMENT_CHECK_WORKER_SECRET` or an equivalent secret if the Worker requires one
+- `PAYMENT_CHECK_WORKER_URL` — Cloudflare Worker endpoint
+- `AGENT_TOKEN` — auth token (primary, used for Bearer header)
+- `PAYMENT_CHECK_WORKER_SECRET` — fallback auth token if AGENT_TOKEN not set
+
+Auth header style:
+```
+Authorization: Bearer <token>
+```
+
+Token resolution order:
+1. `AGENT_TOKEN` env (preferred)
+2. `PAYMENT_CHECK_WORKER_SECRET` env (fallback)
+3. No auth header if neither is set
 
 Suggested request shape:
 - server-side only

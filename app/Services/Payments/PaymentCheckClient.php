@@ -13,7 +13,7 @@ class PaymentCheckClient
     public function __construct(?string $workerUrl = null, ?string $workerSecret = null)
     {
         $this->workerUrl = $workerUrl ?? env('PAYMENT_CHECK_WORKER_URL');
-        $this->workerSecret = $workerSecret ?? env('PAYMENT_CHECK_WORKER_SECRET');
+        $this->workerSecret = $workerSecret ?? env('AGENT_TOKEN') ?: env('PAYMENT_CHECK_WORKER_SECRET');
     }
 
     public function checkImageBytes(string $bytes, array $metadata = []): array
