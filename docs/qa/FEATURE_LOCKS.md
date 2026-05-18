@@ -104,8 +104,23 @@
 
 ---
 
+### F6 P2 — Payment Screenshot Processing Service
+**Status**: LOCKED
+
+**Evidence**:
+- PaymentScreenshotService processes image messages with worker results
+- is_payment=true creates payment case + payment_review_card timeline message
+- is_payment=false returns null, nothing created
+- Null transaction_id accepted
+- Non-image messages rejected with InvalidArgumentException
+- Smoke covers all 4 scenarios
+- Telegram webhook NOT connected yet, Worker NOT called
+
+**Smoke**: `php artisan smoke:payment-screenshot`
+
+---
+
 ## Pending Features
-- F6 P2 Payment Screenshot Processing — pending manual test (smoke: `php artisan smoke:payment-screenshot`)
 - F4 Architecture Alignment Audit
 - F5 Image preview
 - F5 Payment screenshot
