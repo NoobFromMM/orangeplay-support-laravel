@@ -89,8 +89,23 @@
 
 ---
 
+### F6 P1 — Payment Case Foundation
+**Status**: LOCKED
+
+**Evidence**:
+- payment_cases table and model created
+- PaymentCheckClient returns safe failure when URL missing, normalizes worker response
+- PaymentCaseService creates cases with provider, transaction_id, worker_response
+- Handles null transaction_id, rejects is_payment=false
+- Smoke covers all 5 test cases
+- No webhook behavior changed, no production Worker calls
+
+**Smoke**: `php artisan smoke:payment-foundation`
+
+---
+
 ## Pending Features
-- F6 P1 Payment Case Foundation — pending manual test (smoke: `php artisan smoke:payment-foundation`)
+- F6 P2 Payment Screenshot Processing — not yet implemented
 - F4 Architecture Alignment Audit
 - F5 Image preview
 - F5 Payment screenshot

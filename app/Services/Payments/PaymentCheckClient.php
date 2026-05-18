@@ -7,11 +7,18 @@ use Illuminate\Support\Facades\Log;
 
 class PaymentCheckClient
 {
+    protected ?string $workerUrl;
+    protected ?string $workerSecret;
+
+    public function __construct(?string $workerUrl = null, ?string $workerSecret = null)
+    {
+        $this->workerUrl = $workerUrl ?? env('PAYMENT_CHECK_WORKER_URL');
+        $this->workerSecret = $workerSecret ?? env('PAYMENT_CHECK_WORKER_SECRET');
+    }
+
     public function checkImageBytes(string $bytes, array $metadata = []): array
     {
-        $url = env('PAYMENT_CHECK_WORKER_URL');
-
-        if (empty($url)) {
+        if (empty($this->workerUrl)) {
             return [
                 'ok' => false,
                 'is_payment' => false,
@@ -22,7 +29,7 @@ class PaymentCheckClient
         $response = Http::timeout(30)
             ->withHeaders($this->buildHeaders())
             ->attach('file', $bytes, 'screenshot.jpg')
-            ->post($url, $metadata);
+            ->post($this->workerUrl, $metadata);
 
         if (! $response->successful()) {
             return [
@@ -50,12 +57,10 @@ class PaymentCheckClient
 
     protected function buildHeaders(): array
     {
-        $secret = env('PAYMENT_CHECK_WORKER_SECRET');
-
-        if (empty($secret)) {
+        if (empty($this->workerSecret)) {
             return [];
         }
 
-        return ['Authorization' => "Bearer {$secret}"];
+        return ['Authorization' => "Bearer {$this->workerSecret}"];
     }
 }

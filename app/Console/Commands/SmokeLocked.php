@@ -40,6 +40,10 @@ class SmokeLocked extends Command
             $failed = true;
         }
 
+        if ($this->call('smoke:payment-foundation') !== self::SUCCESS) {
+            $failed = true;
+        }
+
         if ($failed) {
             $this->newLine();
             $this->error('One or more locked feature smoke tests FAILED.');
