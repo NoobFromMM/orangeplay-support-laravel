@@ -32,6 +32,10 @@ class SmokeLocked extends Command
             $failed = true;
         }
 
+        if ($this->call('smoke:telegram-image') !== self::SUCCESS) {
+            $failed = true;
+        }
+
         if ($failed) {
             $this->newLine();
             $this->error('One or more locked feature smoke tests FAILED.');

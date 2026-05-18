@@ -58,8 +58,23 @@
 
 ---
 
+### F5 — Telegram Image Receive + Dashboard Preview
+**Status**: LOCKED
+
+**Manual evidence**:
+- Real Telegram user sent a photo
+- Webhook event logged with status=processed
+- Image message saved with message_type=image, metadata includes telegram_file_id and dimensions
+- Dashboard shows image preview via proxy URL, no token exposed
+- Proxy route serves image bytes (HTTP 200)
+- No bot auto-reply for image messages
+- Conversation status = Needs Reply
+
+**Smoke**: `php artisan smoke:telegram-image`
+
+---
+
 ## Pending Features
-- F5 Telegram Image Receive + Preview — pending manual test (smoke: `php artisan smoke:telegram-image`)
 - F4 Architecture Alignment Audit
 - F5 Image preview
 - F5 Payment screenshot
