@@ -198,3 +198,21 @@ Test cases:
 ```bash
 php artisan smoke:payment-foundation
 ```
+
+---
+
+## Payment Screenshot Processing Smoke Expected
+
+Tests the PaymentScreenshotService without real network calls.
+
+Test cases:
+- A: is_payment=true with transaction_id — payment case + review card created, metadata links payment_case_id
+- B: is_payment=true with null transaction_id — still creates case and review card
+- C: is_payment=false — returns null, nothing created
+- D: Non-image message — throws InvalidArgumentException
+
+### Run
+
+```bash
+php artisan smoke:payment-screenshot
+```

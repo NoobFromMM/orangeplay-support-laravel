@@ -105,7 +105,7 @@
 ---
 
 ## Pending Features
-- F6 P2 Payment Screenshot Processing — not yet implemented
+- F6 P2 Payment Screenshot Processing — pending manual test (smoke: `php artisan smoke:payment-screenshot`)
 - F4 Architecture Alignment Audit
 - F5 Image preview
 - F5 Payment screenshot
