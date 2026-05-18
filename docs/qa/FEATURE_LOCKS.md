@@ -136,10 +136,21 @@
 
 ---
 
+### F6 P3D — Payment Review Card UI + Desc Order
+**Status**: LOCKED
+
+**Manual evidence**:
+- Payment review card renders as compact white card with amber left-border
+- Card shows provider, transaction ID, amount, case ID — no raw worker data exposed
+- Screenshot image remains separate in timeline
+- Conversation timeline shows newest messages first (created_at DESC)
+- Admin reply appears at top after refresh
+- No secrets or tokens in rendered HTML
+
+---
+
 ## Pending Features
-- F6 P3D Payment Review Card UI — pending manual test
 - F4 Architecture Alignment Audit
-- F5 Image preview
 - F5 Payment screenshot
 - F6 Viber channel
 - F7 Facebook Messenger channel
