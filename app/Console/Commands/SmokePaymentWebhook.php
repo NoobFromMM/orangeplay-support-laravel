@@ -36,10 +36,21 @@ class SmokePaymentWebhook extends Command
         Http::fake(function ($request) {
             $url = $request->url();
             if (str_contains($url, 'payment-check-pmt.example')) {
-                return Http::response(['ok' => true, 'is_payment' => true, 'provider' => 'KBZ Pay', 'transaction_id' => '1429501235', 'amount' => 5000, 'confidence' => 0.95], 200);
+                return Http::response([
+                    'ok' => true,
+                    'data' => [
+                        'content' => [
+                            'is_payment' => true,
+                            'app' => 'KBZ Pay',
+                            'transaction_id' => '1429501235',
+                            'amount' => 5000,
+                            'confidence' => 0.95,
+                        ],
+                    ],
+                ], 200);
             }
             if (str_contains($url, 'payment-check-notpmt.example')) {
-                return Http::response(['ok' => true, 'is_payment' => false], 200);
+                return Http::response(['ok' => true, 'data' => ['content' => ['is_payment' => false]]], 200);
             }
             if (str_contains($url, 'payment-check-fail.example')) {
                 return Http::response('Internal Server Error', 500);
@@ -106,8 +117,12 @@ class SmokePaymentWebhook extends Command
         $conversationService->saveInboundMessage($conversation, $normalized);
         $conversationService->setStatus($conversation, 'Needs Reply');
 
-        // Simulate payment check
-        $paymentCheckClient = new PaymentCheckClient('https://payment-check-pmt.example.com/check');
+        // Simulate payment check with multipart contract
+        $paymentCheckClient = new PaymentCheckClient(
+            'https://payment-check-pmt.example.com/check',
+            'fake-agent-token',
+            'fake-gemini-key',
+        );
         $workerResult = $paymentCheckClient->checkImageBytes('fake-bytes', [
             'platform' => 'telegram',
             'platform_user_id' => '666001',

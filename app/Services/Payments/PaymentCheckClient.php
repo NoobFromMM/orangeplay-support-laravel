@@ -8,12 +8,17 @@ use Illuminate\Support\Facades\Log;
 class PaymentCheckClient
 {
     protected ?string $workerUrl;
-    protected ?string $workerSecret;
+    protected ?string $agentToken;
+    protected ?string $geminiKey;
 
-    public function __construct(?string $workerUrl = null, ?string $workerSecret = null)
-    {
+    public function __construct(
+        ?string $workerUrl = null,
+        ?string $agentToken = null,
+        ?string $geminiKey = null,
+    ) {
         $this->workerUrl = $workerUrl ?? env('PAYMENT_CHECK_WORKER_URL');
-        $this->workerSecret = $workerSecret ?? env('AGENT_TOKEN') ?: env('PAYMENT_CHECK_WORKER_SECRET');
+        $this->agentToken = $agentToken ?? env('AGENT_TOKEN') ?: env('PAYMENT_CHECK_WORKER_SECRET');
+        $this->geminiKey = $geminiKey ?? env('GEMINI_KEY') ?: env('PAYMENT_CHECK_GEMINI_KEY');
     }
 
     public function checkImageBytes(string $bytes, array $metadata = []): array
@@ -26,10 +31,29 @@ class PaymentCheckClient
             ];
         }
 
+        if (empty($this->agentToken)) {
+            return [
+                'ok' => false,
+                'is_payment' => false,
+                'error' => 'AGENT_TOKEN is not set',
+            ];
+        }
+
+        if (empty($this->geminiKey)) {
+            return [
+                'ok' => false,
+                'is_payment' => false,
+                'error' => 'GEMINI_KEY is not set',
+            ];
+        }
+
         $response = Http::timeout(30)
-            ->withHeaders($this->buildHeaders())
-            ->attach('file', $bytes, 'screenshot.jpg')
-            ->post($this->workerUrl, $metadata);
+            ->attach('image', $bytes, 'screenshot.jpg')
+            ->post($this->workerUrl, array_filter([
+                'mode' => 'payment_check',
+                'agent_token' => $this->agentToken,
+                'gemini_key' => $this->geminiKey,
+            ]));
 
         if (! $response->successful()) {
             return [
@@ -42,25 +66,36 @@ class PaymentCheckClient
 
         $body = $response->json() ?? [];
 
-        return [
-            'ok' => $body['ok'] ?? false,
-            'is_payment' => $body['is_payment'] ?? false,
-            'provider' => $body['provider'] ?? null,
-            'transaction_id' => $body['transaction_id'] ?? null,
-            'amount' => $body['amount'] ?? null,
-            'confidence' => $body['confidence'] ?? null,
-            'reason' => $body['reason'] ?? null,
-            'error' => $body['error'] ?? null,
-            'raw' => $body,
-        ];
+        return $this->normalizeResponse($body);
     }
 
-    protected function buildHeaders(): array
+    protected function normalizeResponse(array $body): array
     {
-        if (empty($this->workerSecret)) {
-            return [];
-        }
+        $content = $body['data']['content'] ?? $body;
 
-        return ['Authorization' => "Bearer {$this->workerSecret}"];
+        $isPayment = $content['is_payment'] ?? false;
+
+        $provider = $content['app']
+            ?? $content['provider']
+            ?? $content['payment_provider']
+            ?? null;
+
+        $transactionId = $content['transaction_id']
+            ?? $content['txn_id']
+            ?? $content['transactionId']
+            ?? $content['payment_transaction_id']
+            ?? null;
+
+        return [
+            'ok' => $body['ok'] ?? true,
+            'is_payment' => (bool) $isPayment,
+            'provider' => $provider,
+            'transaction_id' => $transactionId,
+            'amount' => $content['amount'] ?? null,
+            'confidence' => $content['confidence'] ?? null,
+            'reason' => $content['reason'] ?? null,
+            'error' => $body['error'] ?? $content['error'] ?? null,
+            'raw' => $body,
+        ];
     }
 }

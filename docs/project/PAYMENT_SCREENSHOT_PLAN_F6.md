@@ -24,18 +24,43 @@ Laravel should treat the Worker as an OCR and payment classification service onl
 
 Suggested environment variables:
 - `PAYMENT_CHECK_WORKER_URL` — Cloudflare Worker endpoint
-- `AGENT_TOKEN` — auth token (primary, used for Bearer header)
+- `AGENT_TOKEN` — auth token (primary, sent as form field `agent_token`)
+- `GEMINI_KEY` — Gemini API key (sent as form field `gemini_key`)
 - `PAYMENT_CHECK_WORKER_SECRET` — fallback auth token if AGENT_TOKEN not set
+- `PAYMENT_CHECK_GEMINI_KEY` — fallback if GEMINI_KEY not set
 
-Auth header style:
+Request contract (multipart/form-data):
 ```
-Authorization: Bearer <token>
+POST <PAYMENT_CHECK_WORKER_URL>
+Content-Type: multipart/form-data
+Fields:
+  mode = payment_check
+  agent_token = <AGENT_TOKEN>
+  gemini_key = <GEMINI_KEY>
+Attachment:
+  image = <binary screenshot>
 ```
 
-Token resolution order:
-1. `AGENT_TOKEN` env (preferred)
-2. `PAYMENT_CHECK_WORKER_SECRET` env (fallback)
-3. No auth header if neither is set
+Response shape (nested, from old n8n Worker):
+```json
+{
+  "data": {
+    "content": {
+      "is_payment": true,
+      "app": "kpay",
+      "transaction_id": "...",
+      "amount": 5000,
+      "confidence": 0.95,
+      "reason": "..."
+    }
+  }
+}
+```
+
+Normalized keys: ok, is_payment, provider, transaction_id, amount, confidence, reason, error, raw
+
+Provider accepts: content.app, content.provider, content.payment_provider
+Transaction accepts: content.transaction_id, content.txn_id, content.transactionId, content.payment_transaction_id
 
 Suggested request shape:
 - server-side only
