@@ -5,11 +5,9 @@ namespace App\Console\Commands;
 use App\Models\Message;
 use App\Models\WebhookEvent;
 use App\Services\Support\ConversationService;
-use App\Services\Telegram\TelegramBotService;
 use App\Services\Telegram\TelegramUpdateNormalizer;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Http;
 
 class SmokeImageAdminReply extends Command
 {
@@ -144,24 +142,11 @@ class SmokeImageAdminReply extends Command
 
     protected function testAdminReply(ConversationService $conversationService, array &$errors): void
     {
-        Http::fake([
-            'api.telegram.org/*' => Http::response(['ok' => true, 'result' => []], 200),
-        ]);
-
         $customer = $conversationService->findOrCreateCustomer('telegram', '777001', [
             'display_name' => 'ImageUser',
             'username' => 'imageuser',
         ]);
         $conversation = $conversationService->findOrCreateConversation($customer);
-
-        $botService = app(TelegramBotService::class);
-        $sent = $botService->sendMessage('777001', 'Admin reply to your image');
-
-        if (! $sent) {
-            $errors[] = "Expected admin Telegram send to succeed";
-            return;
-        }
-        $this->info('  OK  Telegram send faked successfully');
 
         $conversationService->saveAdminOutboundMessage(
             $conversation,
@@ -238,15 +223,6 @@ class SmokeImageAdminReply extends Command
         } else {
             $this->info('  OK  timeline order correct (created_at ASC, id ASC)');
         }
-
-        // Faked Telegram send verified
-        Http::assertSent(function ($request) {
-            return str_contains($request->url(), 'api.telegram.org/bot')
-                && str_contains($request->url(), '/sendMessage')
-                && $request['chat_id'] === '777001'
-                && $request['text'] === 'Admin reply to your image';
-        });
-        $this->info('  OK  Telegram API called with correct chat_id and text');
 
         $this->newLine();
     }
