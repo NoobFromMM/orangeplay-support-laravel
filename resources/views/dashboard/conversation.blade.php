@@ -99,14 +99,13 @@
         .image-placeholder { padding: 40px 20px; text-align: center; background: #f3f4f6; border-radius: 8px; color: #6b7280; font-size: .85rem; }
         .image-preview img { transition: opacity .2s; }
         .image-preview img:hover { opacity: .9; }
-        .payment-card { background: #fffbeb; border: 1px solid #fde68a; border-radius: 12px; padding: 20px; margin-top: 4px; }
-        .payment-card h3 { font-size: .95rem; font-weight: 700; color: #92400e; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
-        .payment-card .badge { display: inline-block; padding: 2px 10px; border-radius: 9999px; font-size: .7rem; font-weight: 600; background: #fef3c7; color: #92400e; }
-        .payment-card .fields { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px; margin-bottom: 8px; }
-        .payment-card .field { }
-        .payment-card .field-label { font-size: .7rem; font-weight: 600; color: #92400e; text-transform: uppercase; letter-spacing: .03em; margin-bottom: 2px; }
-        .payment-card .field-value { font-size: .85rem; color: #78350f; word-break: break-all; font-family: 'SF Mono', 'Menlo', monospace; }
-        .payment-card .hint { font-size: .75rem; color: #a16207; margin-top: 10px; padding-top: 10px; border-top: 1px solid #fde68a; }
+        .payment-card { background: #fff; border: 1px solid #e5e7eb; border-left: 3px solid #f59e0b; border-radius: 8px; padding: 14px 16px; margin-top: 4px; }
+        .payment-card-header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; font-size: .85rem; font-weight: 600; color: #374151; }
+        .payment-card .badge { display: inline-block; padding: 1px 8px; border-radius: 9999px; font-size: .65rem; font-weight: 600; background: #fef3c7; color: #92400e; }
+        .payment-card .fields { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 14px; margin-bottom: 6px; }
+        .payment-card .field-label { font-size: .65rem; font-weight: 600; color: #9ca3af; text-transform: uppercase; letter-spacing: .03em; margin-bottom: 1px; }
+        .payment-card .field-value { font-size: .8rem; color: #1f2937; word-break: break-all; font-family: 'SF Mono', 'Menlo', 'Consolas', monospace; }
+        .payment-card .hint { font-size: .7rem; color: #9ca3af; margin-top: 6px; padding-top: 6px; border-top: 1px solid #f3f4f6; }
         @media (max-width: 600px) {
             .customer-header { flex-direction: column; }
             .customer-meta-right { align-items: flex-start; }
@@ -259,10 +258,10 @@
                                     $cardCaseId = $pcMeta['payment_case_id'] ?? null;
                                 @endphp
                                 <div class="payment-card">
-                                    <h3>
+                                    <div class="payment-card-header">
                                         &#128179; Payment Review
                                         <span class="badge">Pending Review</span>
-                                    </h3>
+                                    </div>
                                     <div class="fields">
                                         <div class="field">
                                             <div class="field-label">Provider</div>
