@@ -120,8 +120,23 @@
 
 ---
 
+### F6 P3 — Payment Webhook Integration
+**Status**: LOCKED
+
+**Manual evidence**:
+- Real Telegram payment screenshot sent
+- payment_check.ok=true, is_payment=true
+- provider=ayapay, transaction_id=259430808614
+- payment_case created (id=97) with pending_review status
+- payment_review_card timeline message created (id=1901)
+- No bot auto-reply on payment detection
+- Worker called via multipart contract with AGENT_TOKEN + GEMINI_KEY
+
+**Smoke**: `php artisan smoke:payment-webhook`
+
+---
+
 ## Pending Features
-- F6 P3 Connect Payment Check to Image Webhook — pending manual test (smoke: `php artisan smoke:payment-webhook`)
 - F4 Architecture Alignment Audit
 - F5 Image preview
 - F5 Payment screenshot

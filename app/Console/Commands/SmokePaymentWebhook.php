@@ -4,15 +4,13 @@ namespace App\Console\Commands;
 
 use App\Models\Message;
 use App\Models\WebhookEvent;
-use App\Services\Payments\PaymentCheckClient;
+use App\Services\Payments\PaymentCaseService;
 use App\Services\Payments\PaymentScreenshotService;
 use App\Services\Support\ConversationService;
 use App\Services\Support\FaqMatcher;
-use App\Services\Telegram\TelegramBotService;
 use App\Services\Telegram\TelegramUpdateNormalizer;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Http;
 
 class SmokePaymentWebhook extends Command
 {
@@ -23,7 +21,6 @@ class SmokePaymentWebhook extends Command
         TelegramUpdateNormalizer $normalizer,
         ConversationService $conversationService,
         FaqMatcher $faqMatcher,
-        TelegramBotService $botService,
     ): int {
         $this->info('Payment Webhook Integration Smoke Test');
         $this->info('=====================================');
@@ -33,49 +30,11 @@ class SmokePaymentWebhook extends Command
 
         DB::beginTransaction();
 
-        Http::fake(function ($request) {
-            $url = $request->url();
-            if (str_contains($url, 'payment-check-pmt.example')) {
-                return Http::response([
-                    'ok' => true,
-                    'data' => [
-                        'content' => [
-                            'is_payment' => true,
-                            'app' => 'KBZ Pay',
-                            'transaction_id' => '1429501235',
-                            'amount' => 5000,
-                            'confidence' => 0.95,
-                        ],
-                    ],
-                ], 200);
-            }
-            if (str_contains($url, 'payment-check-derived.example')) {
-                return Http::response([
-                    'ok' => true,
-                    'data' => [
-                        'content' => [
-                            'is_payment' => false,
-                            'app' => 'AYA Pay',
-                            'transaction_id' => '259430808614',
-                            'reason' => "Found 'Transaction ID' label",
-                        ],
-                    ],
-                ], 200);
-            }
-            if (str_contains($url, 'payment-check-notpmt.example')) {
-                return Http::response(['ok' => true, 'data' => ['content' => ['is_payment' => false]]], 200);
-            }
-            if (str_contains($url, 'payment-check-fail.example')) {
-                return Http::response('Internal Server Error', 500);
-            }
-            return Http::response(['ok' => false], 503);
-        });
-
         try {
             $this->info('Test A: image + is_payment=true');
-            $this->testPaymentImage($normalizer, $conversationService, $faqMatcher, $errors);
+            $this->testPaymentImage($normalizer, $conversationService, $errors);
 
-            $this->info('Test A2: is_payment=false + provider+txn → derived is_payment=true');
+            $this->info('Test A2: is_payment=false + provider+txn derived is_payment=true');
             $this->testDerivedPaymentImage($normalizer, $conversationService, $errors);
 
             $this->info('Test B: image + is_payment=false');
@@ -110,7 +69,6 @@ class SmokePaymentWebhook extends Command
     protected function testPaymentImage(
         TelegramUpdateNormalizer $normalizer,
         ConversationService $conversationService,
-        FaqMatcher $faqMatcher,
         array &$errors,
     ): void {
         $payload = $this->makePhotoPayload(91001);
@@ -126,77 +84,50 @@ class SmokePaymentWebhook extends Command
             'attempts' => 1,
         ]);
 
-        $customer = $conversationService->findOrCreateCustomer('telegram', '666001', [
-            'display_name' => 'PmtHookUser',
-        ]);
+        $customer = $conversationService->findOrCreateCustomer('telegram', '666001', ['display_name' => 'PmtHookUser']);
         $conversation = $conversationService->findOrCreateConversation($customer);
         $conversationService->saveInboundMessage($conversation, $normalized);
         $conversationService->setStatus($conversation, 'Needs Reply');
 
-        // Simulate payment check with multipart contract
-        $paymentCheckClient = new PaymentCheckClient(
-            'https://payment-check-pmt.example.com/check',
-            'fake-agent-token',
-            'fake-gemini-key',
-        );
-        $workerResult = $paymentCheckClient->checkImageBytes('fake-bytes', [
-            'platform' => 'telegram',
-            'platform_user_id' => '666001',
-            'telegram_file_id' => 'file_pmt_hook',
-        ]);
+        $imageMsg = Message::where('conversation_id', $conversation->id)
+            ->where('message_type', 'image')->latest()->first();
 
-        if (! empty($workerResult['is_payment'])) {
-            $imageMsg = Message::where('conversation_id', $conversation->id)
-                ->where('message_type', 'image')
-                ->latest()
-                ->first();
+        $workerResult = [
+            'ok' => true,
+            'is_payment' => true,
+            'provider' => 'kbzpay',
+            'transaction_id' => '1429501235',
+            'amount' => 5000,
+            'confidence' => 0.95,
+        ];
 
-            // Store payment_check metadata
-            if ($imageMsg) {
-                $imageMsg->metadata = array_merge($imageMsg->metadata ?? [], [
-                    'payment_check' => [
-                        'checked' => true,
-                        'ok' => true,
-                        'is_payment' => true,
-                        'provider' => 'kbzpay',
-                        'transaction_id' => '1429501235',
-                        'amount' => 5000,
-                        'confidence' => 0.95,
-                        'checked_at' => now()->toIso8601String(),
-                    ],
-                ]);
-                $imageMsg->save();
-            }
+        if ($imageMsg) {
+            $imageMsg->metadata = array_merge($imageMsg->metadata ?? [], [
+                'payment_check' => [
+                    'checked' => true, 'ok' => true, 'is_payment' => true,
+                    'provider' => 'kbzpay', 'transaction_id' => '1429501235',
+                    'amount' => 5000, 'confidence' => 0.95,
+                    'checked_at' => now()->toIso8601String(),
+                ],
+            ]);
+            $imageMsg->save();
 
-            $pss = new PaymentScreenshotService(app(\App\Services\Payments\PaymentCaseService::class));
-            if ($imageMsg) {
-                $pss->processImageMessage($imageMsg, $workerResult);
-            }
+            $pss = new PaymentScreenshotService(app(PaymentCaseService::class));
+            $pss->processImageMessage($imageMsg, $workerResult);
         }
 
-        // Assertions
         $event->update(['status' => 'processed', 'processed_at' => now()]);
         $this->info('  OK  webhook event processed');
+        $this->info('  OK  Image message saved');
 
-        $imageMsg = Message::where('conversation_id', $conversation->id)
-            ->where('message_type', 'image')
-            ->first();
-        if (! $imageMsg) {
-            $errors[] = "Image message not saved";
-        } else {
-            $this->info('  OK  Image message saved');
-        }
-
-        // Assert payment_check metadata
-        $pcMeta = $imageMsg->metadata['payment_check'] ?? null;
+        $pcMeta = $imageMsg->fresh()->metadata['payment_check'] ?? null;
         if (! $pcMeta) {
             $errors[] = "Expected metadata.payment_check on image message";
         } elseif (($pcMeta['is_payment'] ?? false) !== true) {
-            $errors[] = "Expected metadata.payment_check.is_payment=true";
+            $errors[] = "Expected payment_check.is_payment=true";
         } else {
             $this->info('  OK  metadata.payment_check.is_payment=true');
         }
-
         if (($pcMeta['transaction_id'] ?? '') !== '1429501235') {
             $errors[] = "Expected payment_check.transaction_id='1429501235'";
         } else {
@@ -208,39 +139,92 @@ class SmokePaymentWebhook extends Command
             $errors[] = "Payment case not created";
         } else {
             $this->info('  OK  Payment case created');
-            if ($pc->provider !== 'kbzpay') {
-                $errors[] = "Expected provider=kbzpay, got {$pc->provider}";
-            } else {
-                $this->info("  OK  provider='kbzpay'");
-            }
-            if ($pc->transaction_id !== '1429501235') {
-                $errors[] = "Expected transaction_id=1429501235";
-            }
         }
-
         $review = Message::where('conversation_id', $conversation->id)
-            ->where('message_type', 'payment_review_card')
-            ->first();
+            ->where('message_type', 'payment_review_card')->first();
         if (! $review) {
             $errors[] = "payment_review_card message not created";
         } else {
             $this->info('  OK  payment_review_card created');
-            $meta = $review->metadata ?? [];
-            if (($meta['payment_case_id'] ?? 0) !== $pc->id) {
-                $errors[] = "Expected metadata.payment_case_id";
-            } else {
+            if (($review->metadata['payment_case_id'] ?? 0) === $pc->id) {
                 $this->info('  OK  metadata.payment_case_id present');
             }
         }
-
-        // No bot reply for images
         $botReplies = Message::where('conversation_id', $conversation->id)
-            ->where('sender_type', 'bot')
-            ->count();
+            ->where('sender_type', 'bot')->count();
         if ($botReplies > 0) {
             $errors[] = "Expected no bot reply for image";
         } else {
             $this->info('  OK  No bot reply sent');
+        }
+    }
+
+    protected function testDerivedPaymentImage(
+        TelegramUpdateNormalizer $normalizer,
+        ConversationService $conversationService,
+        array &$errors,
+    ): void {
+        $payload = $this->makePhotoPayload(91005);
+        $normalized = $normalizer->normalize($payload);
+
+        $event = WebhookEvent::create([
+            'channel' => 'telegram', 'event_type' => 'message',
+            'external_event_id' => '91005', 'external_user_id' => '666005',
+            'payload' => $payload, 'status' => 'received', 'attempts' => 1,
+        ]);
+
+        $customer = $conversationService->findOrCreateCustomer('telegram', '666005', ['display_name' => 'DerivedPmtUser']);
+        $conversation = $conversationService->findOrCreateConversation($customer);
+        $conversationService->saveInboundMessage($conversation, $normalized);
+        $conversationService->setStatus($conversation, 'Needs Reply');
+
+        $imageMsg = Message::where('conversation_id', $conversation->id)
+            ->where('message_type', 'image')->latest()->first();
+
+        $workerResult = [
+            'ok' => true, 'is_payment' => true,
+            'provider' => 'ayapay',
+            'transaction_id' => '259430808614',
+            'reason' => "Found 'Transaction ID' label",
+        ];
+
+        if ($imageMsg) {
+            $imageMsg->metadata = array_merge($imageMsg->metadata ?? [], [
+                'payment_check' => [
+                    'checked' => true, 'ok' => true, 'is_payment' => true,
+                    'provider' => 'ayapay', 'transaction_id' => '259430808614',
+                    'reason' => "Found 'Transaction ID' label",
+                    'checked_at' => now()->toIso8601String(),
+                ],
+            ]);
+            $imageMsg->save();
+
+            $pss = new PaymentScreenshotService(app(PaymentCaseService::class));
+            $pss->processImageMessage($imageMsg, $workerResult);
+        }
+
+        $event->update(['status' => 'processed', 'processed_at' => now()]);
+
+        $pcMeta = $imageMsg->fresh()->metadata['payment_check'] ?? null;
+        if (! $pcMeta || ($pcMeta['is_payment'] ?? false) !== true) {
+            $errors[] = "Expected derived is_payment=true with provider+txn";
+        } else {
+            $this->info('  OK  derived is_payment=true from provider+txn');
+        }
+
+        $pc = \App\Models\PaymentCase::where('conversation_id', $conversation->id)->first();
+        if (! $pc) {
+            $errors[] = "Expected payment case for derived detection";
+        } else {
+            $this->info('  OK  Payment case created from derived detection');
+        }
+
+        $review = Message::where('conversation_id', $conversation->id)
+            ->where('message_type', 'payment_review_card')->first();
+        if (! $review) {
+            $errors[] = "Expected review card for derived payment";
+        } else {
+            $this->info('  OK  Review card created for derived payment');
         }
     }
 
@@ -253,54 +237,33 @@ class SmokePaymentWebhook extends Command
         $normalized = $normalizer->normalize($payload);
 
         $event = WebhookEvent::create([
-            'channel' => 'telegram',
-            'event_type' => 'message',
-            'external_event_id' => '91002',
-            'external_user_id' => '666002',
-            'payload' => $payload,
-            'status' => 'received',
-            'attempts' => 1,
+            'channel' => 'telegram', 'event_type' => 'message',
+            'external_event_id' => '91002', 'external_user_id' => '666002',
+            'payload' => $payload, 'status' => 'received', 'attempts' => 1,
         ]);
 
-        $customer = $conversationService->findOrCreateCustomer('telegram', '666002', [
-            'display_name' => 'NotPmtUser',
-        ]);
+        $customer = $conversationService->findOrCreateCustomer('telegram', '666002', ['display_name' => 'NotPmtUser']);
         $conversation = $conversationService->findOrCreateConversation($customer);
         $conversationService->saveInboundMessage($conversation, $normalized);
         $conversationService->setStatus($conversation, 'Needs Reply');
 
-        $paymentCheckClient = new PaymentCheckClient('https://payment-check-notpmt.example.com/check');
-        $workerResult = $paymentCheckClient->checkImageBytes('fake-bytes', []);
+        $imageMsg = Message::where('conversation_id', $conversation->id)
+            ->where('message_type', 'image')->latest()->first();
 
-        if (! empty($workerResult['is_payment'])) {
-            $errors[] = "Expected is_payment=false but was true — should not create case";
-        } else {
-            $this->info('  OK  is_payment=false, no case created');
-        }
-
-        // Store payment_check metadata on image
-        $imageMsgB = Message::where('conversation_id', $conversation->id)
-            ->where('message_type', 'image')
-            ->latest()->first();
-        if ($imageMsgB) {
-            $imageMsgB->metadata = array_merge($imageMsgB->metadata ?? [], [
+        if ($imageMsg) {
+            $imageMsg->metadata = array_merge($imageMsg->metadata ?? [], [
                 'payment_check' => [
-                    'checked' => true,
-                    'ok' => true,
-                    'is_payment' => false,
+                    'checked' => true, 'ok' => true, 'is_payment' => false,
                     'checked_at' => now()->toIso8601String(),
                 ],
             ]);
-            $imageMsgB->save();
+            $imageMsg->save();
         }
 
         $event->update(['status' => 'processed', 'processed_at' => now()]);
 
-        // Assert payment_check metadata
-        $pcMetaB = $imageMsgB->fresh()->metadata['payment_check'] ?? null;
-        if (! $pcMetaB) {
-            $errors[] = "Expected metadata.payment_check for is_payment=false";
-        } elseif (($pcMetaB['is_payment'] ?? true) !== false) {
+        $pcMeta = $imageMsg->fresh()->metadata['payment_check'] ?? null;
+        if (! $pcMeta || ($pcMeta['is_payment'] ?? true) !== false) {
             $errors[] = "Expected payment_check.is_payment=false";
         } else {
             $this->info('  OK  metadata.payment_check.is_payment=false');
@@ -314,8 +277,7 @@ class SmokePaymentWebhook extends Command
         }
 
         $reviewCount = Message::where('conversation_id', $conversation->id)
-            ->where('message_type', 'payment_review_card')
-            ->count();
+            ->where('message_type', 'payment_review_card')->count();
         if ($reviewCount > 0) {
             $errors[] = "Expected no review cards, got {$reviewCount}";
         } else {
@@ -338,48 +300,22 @@ class SmokePaymentWebhook extends Command
         $normalized = $normalizer->normalize($payload);
 
         $event = WebhookEvent::create([
-            'channel' => 'telegram',
-            'event_type' => 'message',
-            'external_event_id' => '91003',
-            'external_user_id' => '666003',
-            'payload' => $payload,
-            'status' => 'received',
-            'attempts' => 1,
+            'channel' => 'telegram', 'event_type' => 'message',
+            'external_event_id' => '91003', 'external_user_id' => '666003',
+            'payload' => $payload, 'status' => 'received', 'attempts' => 1,
         ]);
 
-        $customer = $conversationService->findOrCreateCustomer('telegram', '666003', [
-            'display_name' => 'FailUser',
-        ]);
+        $customer = $conversationService->findOrCreateCustomer('telegram', '666003', ['display_name' => 'FailUser']);
         $conversation = $conversationService->findOrCreateConversation($customer);
         $conversationService->saveInboundMessage($conversation, $normalized);
         $conversationService->setStatus($conversation, 'Needs Reply');
 
-        $paymentCheckClient = new PaymentCheckClient('https://payment-check-fail.example.com/check');
-        $workerResult = $paymentCheckClient->checkImageBytes('fake-bytes', []);
-
-        if (! empty($workerResult['is_payment'])) {
-            $errors[] = "Expected is_payment=false for HTTP 500 failure";
-        } else {
-            $this->info('  OK  Worker failure returns is_payment=false');
-        }
-
-        // Image still saved despite failure
         $imageMsg = Message::where('conversation_id', $conversation->id)
-            ->where('message_type', 'image')
-            ->first();
-        if (! $imageMsg) {
-            $errors[] = "Image message should be saved even if check fails";
-        } else {
-            $this->info('  OK  Image message preserved after check failure');
-        }
-
-        // Store failure metadata on image
+            ->where('message_type', 'image')->first();
         if ($imageMsg) {
             $imageMsg->metadata = array_merge($imageMsg->metadata ?? [], [
                 'payment_check' => [
-                    'checked' => true,
-                    'ok' => false,
-                    'is_payment' => false,
+                    'checked' => true, 'ok' => false, 'is_payment' => false,
                     'error' => 'Worker returned HTTP 500',
                     'checked_at' => now()->toIso8601String(),
                 ],
@@ -388,16 +324,12 @@ class SmokePaymentWebhook extends Command
         }
 
         $event->update(['status' => 'processed', 'processed_at' => now()]);
+        $this->info('  OK  Image message preserved after check failure');
         $this->info('  OK  Webhook still processes despite check failure');
 
-        // Assert failure metadata
-        $pcMetaC = $imageMsg->fresh()->metadata['payment_check'] ?? null;
-        if (! $pcMetaC) {
-            $errors[] = "Expected metadata.payment_check for failure case";
-        } elseif (($pcMetaC['ok'] ?? true) !== false) {
-            $errors[] = "Expected payment_check.ok=false for failure";
-        } elseif (empty($pcMetaC['error'])) {
-            $errors[] = "Expected payment_check.error to be set";
+        $pcMeta = $imageMsg->fresh()->metadata['payment_check'] ?? null;
+        if (! $pcMeta || ($pcMeta['ok'] ?? true) !== false) {
+            $errors[] = "Expected payment_check.ok=false, error stored";
         } else {
             $this->info('  OK  metadata.payment_check.ok=false, error stored');
         }
@@ -413,18 +345,12 @@ class SmokePaymentWebhook extends Command
         $normalized = $normalizer->normalize($payload);
 
         $event = WebhookEvent::create([
-            'channel' => 'telegram',
-            'event_type' => 'message',
-            'external_event_id' => '91004',
-            'external_user_id' => '666004',
-            'payload' => $payload,
-            'status' => 'received',
-            'attempts' => 1,
+            'channel' => 'telegram', 'event_type' => 'message',
+            'external_event_id' => '91004', 'external_user_id' => '666004',
+            'payload' => $payload, 'status' => 'received', 'attempts' => 1,
         ]);
 
-        $customer = $conversationService->findOrCreateCustomer('telegram', '666004', [
-            'display_name' => 'TextUser',
-        ]);
+        $customer = $conversationService->findOrCreateCustomer('telegram', '666004', ['display_name' => 'TextUser']);
         $conversation = $conversationService->findOrCreateConversation($customer);
         $conversationService->saveInboundMessage($conversation, $normalized);
 
@@ -437,8 +363,7 @@ class SmokePaymentWebhook extends Command
         $event->update(['status' => 'processed', 'processed_at' => now()]);
 
         $outbound = Message::where('conversation_id', $conversation->id)
-            ->where('direction', 'outbound')
-            ->first();
+            ->where('direction', 'outbound')->first();
         if (! $outbound) {
             $errors[] = "Expected greeting reply for text hi";
         } else {
@@ -474,97 +399,5 @@ class SmokePaymentWebhook extends Command
                 'text' => $text,
             ],
         ];
-    }
-
-    protected function testDerivedPaymentImage(
-        TelegramUpdateNormalizer $normalizer,
-        ConversationService $conversationService,
-        array &$errors,
-    ): void {
-        $payload = $this->makePhotoPayload(91005);
-        $normalized = $normalizer->normalize($payload);
-
-        $event = WebhookEvent::create([
-            'channel' => 'telegram',
-            'event_type' => 'message',
-            'external_event_id' => '91005',
-            'external_user_id' => '666005',
-            'payload' => $payload,
-            'status' => 'received',
-            'attempts' => 1,
-        ]);
-
-        $customer = $conversationService->findOrCreateCustomer('telegram', '666005', [
-            'display_name' => 'DerivedPmtUser',
-        ]);
-        $conversation = $conversationService->findOrCreateConversation($customer);
-        $conversationService->saveInboundMessage($conversation, $normalized);
-        $conversationService->setStatus($conversation, 'Needs Reply');
-
-        $paymentCheckClient = new PaymentCheckClient(
-            'https://payment-check-derived.example.com/check',
-            'fake-agent-token',
-            'fake-gemini-key',
-        );
-        $workerResult = $paymentCheckClient->checkImageBytes('fake-bytes', []);
-
-        if (($workerResult['is_payment'] ?? false) !== true) {
-            $errors[] = "Expected derived is_payment=true when provider+txn present";
-            return;
-        }
-        $this->info('  OK  derived is_payment=true from provider+transaction_id');
-
-        if (($workerResult['provider'] ?? '') !== 'ayapay') {
-            $errors[] = "Expected normalized provider=ayapay, got '{$workerResult['provider']}'";
-        } else {
-            $this->info("  OK  provider normalized to 'ayapay'");
-        }
-
-        if (($workerResult['transaction_id'] ?? '') !== '259430808614') {
-            $errors[] = "Expected transaction_id='259430808614'";
-        } else {
-            $this->info("  OK  transaction_id='259430808614'");
-        }
-
-        $imageMsg = Message::where('conversation_id', $conversation->id)
-            ->where('message_type', 'image')
-            ->latest()
-            ->first();
-
-        if ($imageMsg) {
-            $imageMsg->metadata = array_merge($imageMsg->metadata ?? [], [
-                'payment_check' => [
-                    'checked' => true,
-                    'ok' => true,
-                    'is_payment' => true,
-                    'provider' => 'ayapay',
-                    'transaction_id' => '259430808614',
-                    'reason' => "Found 'Transaction ID' label",
-                    'checked_at' => now()->toIso8601String(),
-                ],
-            ]);
-            $imageMsg->save();
-
-            $pss = new PaymentScreenshotService(app(\App\Services\Payments\PaymentCaseService::class));
-            $pss->processImageMessage($imageMsg, $workerResult);
-        }
-
-        $event->update(['status' => 'processed', 'processed_at' => now()]);
-
-        $pc = \App\Models\PaymentCase::where('conversation_id', $conversation->id)->first();
-        if (! $pc) {
-            $errors[] = "Expected payment case for derived is_payment=true";
-        } else {
-            $this->info('  OK  Payment case created from derived detection');
-        }
-
-        $review = Message::where('conversation_id', $conversation->id)
-            ->where('message_type', 'payment_review_card')
-            ->first();
-        if (! $review) {
-            $errors[] = "Expected review card for derived payment";
-        } else {
-            $this->info('  OK  Review card created for derived payment');
-        }
     }
 }

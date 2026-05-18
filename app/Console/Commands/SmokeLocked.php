@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Artisan;
 
 class SmokeLocked extends Command
 {
@@ -16,36 +17,16 @@ class SmokeLocked extends Command
 
         $failed = false;
 
-        if ($this->call('smoke:f1') !== self::SUCCESS) {
-            $failed = true;
-        }
+        $commands = [
+            'smoke:f1', 'smoke:f2', 'smoke:f3',
+            'smoke:webhook-events', 'smoke:telegram-image', 'smoke:image-admin-reply',
+            'smoke:payment-foundation', 'smoke:payment-screenshot', 'smoke:payment-webhook',
+        ];
 
-        if ($this->call('smoke:f2') !== self::SUCCESS) {
-            $failed = true;
-        }
-
-        if ($this->call('smoke:f3') !== self::SUCCESS) {
-            $failed = true;
-        }
-
-        if ($this->call('smoke:webhook-events') !== self::SUCCESS) {
-            $failed = true;
-        }
-
-        if ($this->call('smoke:telegram-image') !== self::SUCCESS) {
-            $failed = true;
-        }
-
-        if ($this->call('smoke:image-admin-reply') !== self::SUCCESS) {
-            $failed = true;
-        }
-
-        if ($this->call('smoke:payment-foundation') !== self::SUCCESS) {
-            $failed = true;
-        }
-
-        if ($this->call('smoke:payment-screenshot') !== self::SUCCESS) {
-            $failed = true;
+        foreach ($commands as $command) {
+            if (Artisan::call($command) !== self::SUCCESS) {
+                $failed = true;
+            }
         }
 
         if ($failed) {

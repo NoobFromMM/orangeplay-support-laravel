@@ -22,10 +22,13 @@ class SmokeF3 extends Command
         $this->newLine();
 
         Http::fake(function ($request) {
-            if ($request['chat_id'] === '555000') {
+            if (isset($request['chat_id']) && $request['chat_id'] === '555000') {
                 return Http::response(['ok' => true, 'result' => []], 200);
             }
-            return Http::response(['ok' => false, 'description' => 'Forbidden'], 403);
+            if (isset($request['chat_id'])) {
+                return Http::response(['ok' => false, 'description' => 'Forbidden'], 403);
+            }
+            return Http::response(['ok' => false], 503);
         });
 
         $errors = [];
