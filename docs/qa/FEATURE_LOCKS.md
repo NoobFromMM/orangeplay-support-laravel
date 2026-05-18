@@ -121,6 +121,7 @@
 ---
 
 ## Pending Features
+- F6 P3 Connect Payment Check to Image Webhook — pending manual test (smoke: `php artisan smoke:payment-webhook`)
 - F4 Architecture Alignment Audit
 - F5 Image preview
 - F5 Payment screenshot

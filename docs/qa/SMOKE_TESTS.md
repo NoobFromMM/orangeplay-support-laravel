@@ -216,3 +216,21 @@ Test cases:
 ```bash
 php artisan smoke:payment-screenshot
 ```
+
+---
+
+## Payment Webhook Integration Smoke Expected
+
+Tests the full Telegram image webhook to payment check pipeline with Http::fake.
+
+Test cases:
+- A: image + is_payment=true → payment case + review card created, no bot reply
+- B: image + is_payment=false → no case, no review card, status Needs Reply
+- C: payment check HTTP 500 → image preserved, no crash, status Needs Reply
+- D: text hi → F1 greeting still works
+
+### Run
+
+```bash
+php artisan smoke:payment-webhook
+```

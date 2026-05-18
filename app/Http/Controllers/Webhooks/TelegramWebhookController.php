@@ -4,12 +4,15 @@ namespace App\Http\Controllers\Webhooks;
 
 use App\Http\Controllers\Controller;
 use App\Models\WebhookEvent;
+use App\Services\Payments\PaymentCheckClient;
+use App\Services\Payments\PaymentScreenshotService;
 use App\Services\Support\ConversationService;
 use App\Services\Support\FaqMatcher;
 use App\Services\Telegram\TelegramBotService;
 use App\Services\Telegram\TelegramUpdateNormalizer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 class TelegramWebhookController extends Controller
@@ -20,6 +23,8 @@ class TelegramWebhookController extends Controller
         ConversationService $conversationService,
         FaqMatcher $faqMatcher,
         TelegramBotService $botService,
+        PaymentCheckClient $paymentCheckClient,
+        PaymentScreenshotService $paymentScreenshotService,
     ): JsonResponse {
         $update = $request->all();
 
@@ -68,6 +73,16 @@ class TelegramWebhookController extends Controller
                 } else {
                     $conversationService->setStatus($conversation, 'Needs Reply');
                 }
+            } elseif ($normalized['message_type'] === 'image') {
+                $conversationService->setStatus($conversation, 'Needs Reply');
+
+                $this->tryPaymentCheck(
+                    $customer,
+                    $conversation,
+                    $normalized,
+                    $paymentCheckClient,
+                    $paymentScreenshotService,
+                );
             } else {
                 $conversationService->setStatus($conversation, 'Needs Reply');
             }
@@ -116,5 +131,72 @@ class TelegramWebhookController extends Controller
             ?? [];
 
         return (string) ($container['from']['id'] ?? '');
+    }
+
+    protected function tryPaymentCheck(
+        $customer,
+        $conversation,
+        array $normalized,
+        PaymentCheckClient $paymentCheckClient,
+        PaymentScreenshotService $paymentScreenshotService,
+    ): void {
+        try {
+            $fileId = $normalized['metadata']['telegram_file_id'] ?? null;
+
+            if (empty($fileId)) {
+                return;
+            }
+
+            $imageBytes = $this->downloadTelegramFile($fileId);
+
+            $workerResult = $paymentCheckClient->checkImageBytes($imageBytes, [
+                'platform' => $normalized['platform'],
+                'platform_user_id' => $normalized['platform_user_id'],
+                'message_id' => $normalized['raw_payload']['message']['message_id'] ?? null,
+                'telegram_file_id' => $fileId,
+            ]);
+
+            if (! empty($workerResult['is_payment'])) {
+                $latestImageMessage = \App\Models\Message::where('conversation_id', $conversation->id)
+                    ->where('message_type', 'image')
+                    ->latest()
+                    ->first();
+
+                if ($latestImageMessage) {
+                    $paymentScreenshotService->processImageMessage($latestImageMessage, $workerResult);
+                }
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Payment check failed for image', [
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    protected function downloadTelegramFile(string $fileId): string
+    {
+        $token = env('TELEGRAM_BOT_TOKEN');
+
+        $fileResponse = Http::timeout(15)->get("https://api.telegram.org/bot{$token}/getFile", [
+            'file_id' => $fileId,
+        ]);
+
+        if (! $fileResponse->successful() || ! ($fileResponse->json('ok') ?? false)) {
+            throw new \RuntimeException('Failed to get Telegram file info');
+        }
+
+        $filePath = $fileResponse->json('result.file_path');
+
+        if (empty($filePath)) {
+            throw new \RuntimeException('File path missing in Telegram response');
+        }
+
+        $downloadResponse = Http::timeout(30)->get("https://api.telegram.org/file/bot{$token}/{$filePath}");
+
+        if (! $downloadResponse->successful()) {
+            throw new \RuntimeException('Failed to download Telegram file');
+        }
+
+        return $downloadResponse->body();
     }
 }
