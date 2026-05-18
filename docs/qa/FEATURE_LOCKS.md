@@ -137,6 +137,7 @@
 ---
 
 ## Pending Features
+- F6 P3D Payment Review Card UI — pending manual test
 - F4 Architecture Alignment Audit
 - F5 Image preview
 - F5 Payment screenshot
