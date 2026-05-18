@@ -74,8 +74,22 @@
 
 ---
 
+### F5A — Image + Admin Reply Regression Flow
+**Status**: LOCKED
+
+**Manual evidence**:
+- Real Telegram user sent a photo, admin replied `ပုံရရှိပါပြီရှင့်။` from dashboard
+- Image saved with metadata, no bot auto-reply, status Needs Reply after image
+- Admin reply saved with source=dashboard, status changed to in_chat
+- Dashboard shows image preview and admin reply text
+- Telegram delivery of admin reply confirmed by user
+- No token exposed
+
+**Smoke**: `php artisan smoke:image-admin-reply`
+
+---
+
 ## Pending Features
-- F5A Image + Admin Reply Regression — pending manual test (smoke: `php artisan smoke:image-admin-reply`)
 - F4 Architecture Alignment Audit
 - F5 Image preview
 - F5 Payment screenshot

@@ -36,6 +36,10 @@ class SmokeLocked extends Command
             $failed = true;
         }
 
+        if ($this->call('smoke:image-admin-reply') !== self::SUCCESS) {
+            $failed = true;
+        }
+
         if ($failed) {
             $this->newLine();
             $this->error('One or more locked feature smoke tests FAILED.');
