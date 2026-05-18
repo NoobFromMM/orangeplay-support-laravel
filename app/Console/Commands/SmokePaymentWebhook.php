@@ -49,6 +49,19 @@ class SmokePaymentWebhook extends Command
                     ],
                 ], 200);
             }
+            if (str_contains($url, 'payment-check-derived.example')) {
+                return Http::response([
+                    'ok' => true,
+                    'data' => [
+                        'content' => [
+                            'is_payment' => false,
+                            'app' => 'AYA Pay',
+                            'transaction_id' => '259430808614',
+                            'reason' => "Found 'Transaction ID' label",
+                        ],
+                    ],
+                ], 200);
+            }
             if (str_contains($url, 'payment-check-notpmt.example')) {
                 return Http::response(['ok' => true, 'data' => ['content' => ['is_payment' => false]]], 200);
             }
@@ -61,6 +74,9 @@ class SmokePaymentWebhook extends Command
         try {
             $this->info('Test A: image + is_payment=true');
             $this->testPaymentImage($normalizer, $conversationService, $faqMatcher, $errors);
+
+            $this->info('Test A2: is_payment=false + provider+txn → derived is_payment=true');
+            $this->testDerivedPaymentImage($normalizer, $conversationService, $errors);
 
             $this->info('Test B: image + is_payment=false');
             $this->testNonPaymentImage($normalizer, $conversationService, $errors);
@@ -142,7 +158,7 @@ class SmokePaymentWebhook extends Command
                         'checked' => true,
                         'ok' => true,
                         'is_payment' => true,
-                        'provider' => 'KBZ Pay',
+                        'provider' => 'kbzpay',
                         'transaction_id' => '1429501235',
                         'amount' => 5000,
                         'confidence' => 0.95,
@@ -192,8 +208,10 @@ class SmokePaymentWebhook extends Command
             $errors[] = "Payment case not created";
         } else {
             $this->info('  OK  Payment case created');
-            if ($pc->provider !== 'KBZ Pay') {
-                $errors[] = "Expected provider=KBZ Pay";
+            if ($pc->provider !== 'kbzpay') {
+                $errors[] = "Expected provider=kbzpay, got {$pc->provider}";
+            } else {
+                $this->info("  OK  provider='kbzpay'");
             }
             if ($pc->transaction_id !== '1429501235') {
                 $errors[] = "Expected transaction_id=1429501235";
@@ -456,5 +474,97 @@ class SmokePaymentWebhook extends Command
                 'text' => $text,
             ],
         ];
+    }
+
+    protected function testDerivedPaymentImage(
+        TelegramUpdateNormalizer $normalizer,
+        ConversationService $conversationService,
+        array &$errors,
+    ): void {
+        $payload = $this->makePhotoPayload(91005);
+        $normalized = $normalizer->normalize($payload);
+
+        $event = WebhookEvent::create([
+            'channel' => 'telegram',
+            'event_type' => 'message',
+            'external_event_id' => '91005',
+            'external_user_id' => '666005',
+            'payload' => $payload,
+            'status' => 'received',
+            'attempts' => 1,
+        ]);
+
+        $customer = $conversationService->findOrCreateCustomer('telegram', '666005', [
+            'display_name' => 'DerivedPmtUser',
+        ]);
+        $conversation = $conversationService->findOrCreateConversation($customer);
+        $conversationService->saveInboundMessage($conversation, $normalized);
+        $conversationService->setStatus($conversation, 'Needs Reply');
+
+        $paymentCheckClient = new PaymentCheckClient(
+            'https://payment-check-derived.example.com/check',
+            'fake-agent-token',
+            'fake-gemini-key',
+        );
+        $workerResult = $paymentCheckClient->checkImageBytes('fake-bytes', []);
+
+        if (($workerResult['is_payment'] ?? false) !== true) {
+            $errors[] = "Expected derived is_payment=true when provider+txn present";
+            return;
+        }
+        $this->info('  OK  derived is_payment=true from provider+transaction_id');
+
+        if (($workerResult['provider'] ?? '') !== 'ayapay') {
+            $errors[] = "Expected normalized provider=ayapay, got '{$workerResult['provider']}'";
+        } else {
+            $this->info("  OK  provider normalized to 'ayapay'");
+        }
+
+        if (($workerResult['transaction_id'] ?? '') !== '259430808614') {
+            $errors[] = "Expected transaction_id='259430808614'";
+        } else {
+            $this->info("  OK  transaction_id='259430808614'");
+        }
+
+        $imageMsg = Message::where('conversation_id', $conversation->id)
+            ->where('message_type', 'image')
+            ->latest()
+            ->first();
+
+        if ($imageMsg) {
+            $imageMsg->metadata = array_merge($imageMsg->metadata ?? [], [
+                'payment_check' => [
+                    'checked' => true,
+                    'ok' => true,
+                    'is_payment' => true,
+                    'provider' => 'ayapay',
+                    'transaction_id' => '259430808614',
+                    'reason' => "Found 'Transaction ID' label",
+                    'checked_at' => now()->toIso8601String(),
+                ],
+            ]);
+            $imageMsg->save();
+
+            $pss = new PaymentScreenshotService(app(\App\Services\Payments\PaymentCaseService::class));
+            $pss->processImageMessage($imageMsg, $workerResult);
+        }
+
+        $event->update(['status' => 'processed', 'processed_at' => now()]);
+
+        $pc = \App\Models\PaymentCase::where('conversation_id', $conversation->id)->first();
+        if (! $pc) {
+            $errors[] = "Expected payment case for derived is_payment=true";
+        } else {
+            $this->info('  OK  Payment case created from derived detection');
+        }
+
+        $review = Message::where('conversation_id', $conversation->id)
+            ->where('message_type', 'payment_review_card')
+            ->first();
+        if (! $review) {
+            $errors[] = "Expected review card for derived payment";
+        } else {
+            $this->info('  OK  Review card created for derived payment');
+        }
     }
 }

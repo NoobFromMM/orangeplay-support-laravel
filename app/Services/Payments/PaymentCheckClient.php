@@ -7,6 +7,12 @@ use Illuminate\Support\Facades\Log;
 
 class PaymentCheckClient
 {
+    protected const KNOWN_PROVIDERS = [
+        'kpay', 'kbzpay', 'kbz', 'wave', 'wavepay',
+        'ayapay', 'aya', 'cbpay', 'cb', 'uabpay', 'uab',
+        'onepay', 'mpitesan', 'mpitesanpay',
+    ];
+
     protected ?string $workerUrl;
     protected ?string $agentToken;
     protected ?string $geminiKey;
@@ -73,22 +79,31 @@ class PaymentCheckClient
     {
         $content = $body['data']['content'] ?? $body;
 
-        $isPayment = $content['is_payment'] ?? false;
+        $explicitIsPayment = $content['is_payment']
+            ?? $content['isPayment']
+            ?? $content['is_receipt']
+            ?? false;
 
-        $provider = $content['app']
+        $provider = $this->normalizeProvider(
+            $content['app']
             ?? $content['provider']
             ?? $content['payment_provider']
-            ?? null;
+            ?? null
+        );
 
-        $transactionId = $content['transaction_id']
+        $transactionId = $this->cleanTransactionId(
+            $content['transaction_id']
             ?? $content['txn_id']
             ?? $content['transactionId']
             ?? $content['payment_transaction_id']
-            ?? null;
+            ?? null
+        );
+
+        $derivedIsPayment = $this->deriveIsPayment($explicitIsPayment, $provider, $transactionId);
 
         return [
             'ok' => $body['ok'] ?? true,
-            'is_payment' => (bool) $isPayment,
+            'is_payment' => $derivedIsPayment,
             'provider' => $provider,
             'transaction_id' => $transactionId,
             'amount' => $content['amount'] ?? null,
@@ -97,5 +112,76 @@ class PaymentCheckClient
             'error' => $body['error'] ?? $content['error'] ?? null,
             'raw' => $body,
         ];
+    }
+
+    protected function deriveIsPayment($explicitIsPayment, ?string $provider, ?string $transactionId): bool
+    {
+        if ($explicitIsPayment && $explicitIsPayment !== 'false' && $explicitIsPayment !== '0') {
+            return true;
+        }
+
+        if ($this->isValidTransactionId($transactionId)) {
+            return true;
+        }
+
+        if ($this->isKnownProvider($provider)) {
+            return true;
+        }
+
+        return false;
+    }
+
+    protected function normalizeProvider(?string $provider): ?string
+    {
+        if ($provider === null || trim((string) $provider) === '') {
+            return null;
+        }
+
+        $cleaned = mb_strtolower(trim((string) $provider));
+        $cleaned = preg_replace('/[\s_\-]/u', '', $cleaned);
+
+        return $cleaned ?: null;
+    }
+
+    protected function isKnownProvider(?string $provider): bool
+    {
+        if ($provider === null) {
+            return false;
+        }
+
+        return in_array($provider, self::KNOWN_PROVIDERS, true);
+    }
+
+    protected function cleanTransactionId($transactionId): ?string
+    {
+        if ($transactionId === null) {
+            return null;
+        }
+
+        $cleaned = trim((string) $transactionId);
+
+        if ($cleaned === '') {
+            return null;
+        }
+
+        $invalidValues = [
+            'null', 'undefined', 'not explicitly visible', 'not visible',
+            'not found', 'not readable', 'unclear', 'unknown', 'n/a', 'na', '-',
+        ];
+
+        if (in_array(mb_strtolower($cleaned), $invalidValues, true)) {
+            return null;
+        }
+
+        if (mb_strlen($cleaned) < 4) {
+            return null;
+        }
+
+        return $cleaned;
+    }
+
+    protected function isValidTransactionId(?string $transactionId): bool
+    {
+        return $transactionId !== null;
     }
 }
