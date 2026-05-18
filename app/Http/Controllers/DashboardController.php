@@ -30,8 +30,8 @@ class DashboardController extends Controller
             ->firstOrFail();
 
         $messages = Message::where('customer_id', $customer->id)
-            ->orderBy('created_at', 'asc')
-            ->orderBy('id', 'asc')
+            ->orderBy('created_at', 'desc')
+            ->orderBy('id', 'desc')
             ->get();
 
         $conversation = Conversation::where('customer_id', $customer->id)
