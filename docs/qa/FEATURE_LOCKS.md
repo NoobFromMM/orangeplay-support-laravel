@@ -90,6 +90,7 @@
 ---
 
 ## Pending Features
+- F6 P1 Payment Case Foundation — pending manual test (smoke: `php artisan smoke:payment-foundation`)
 - F4 Architecture Alignment Audit
 - F5 Image preview
 - F5 Payment screenshot

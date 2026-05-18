@@ -179,3 +179,22 @@ Assertions:
 ```bash
 php artisan smoke:image-admin-reply
 ```
+
+---
+
+## Payment Foundation Smoke Expected
+
+Tests the payment case infrastructure without real network calls.
+
+Test cases:
+- A: Worker URL missing — returns safe failure (ok=false)
+- B: Worker fake success — normalized result with provider, transaction_id, amount
+- C: PaymentCaseService creates case with provider, transaction_id, status, worker_response, image_message_id
+- D: Missing transaction_id — still creates case with null transaction_id
+- E: is_payment=false — throws InvalidArgumentException
+
+### Run
+
+```bash
+php artisan smoke:payment-foundation
+```
