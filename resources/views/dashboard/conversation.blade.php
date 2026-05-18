@@ -230,6 +230,42 @@
                             <span class="sender-badge sender-{{ $message->sender_type }}">{{ $senderLabel }}</span>
                             <span class="timeline-time">{{ $message->created_at->format('M j, Y \a\t g:ia') }}</span>
                         </div>
+                        @if ($isPaymentReview)
+                            @php
+                                $pcMeta = $message->metadata;
+                                $cardProvider = $pcMeta['provider'] ?? '-';
+                                $cardTxnId = $pcMeta['transaction_id'] ?? '-';
+                                $cardAmount = $pcMeta['amount'] ? number_format($pcMeta['amount']) . ' MMK' : '-';
+                                $cardCaseId = $pcMeta['payment_case_id'] ?? null;
+                            @endphp
+                            <div class="payment-card">
+                                <div class="payment-card-header">
+                                    &#128179; Payment Review
+                                    <span class="badge">Pending Review</span>
+                                </div>
+                                <div class="fields">
+                                    <div class="field">
+                                        <div class="field-label">Provider</div>
+                                        <div class="field-value">{{ $cardProvider }}</div>
+                                    </div>
+                                    <div class="field">
+                                        <div class="field-label">Transaction ID</div>
+                                        <div class="field-value">{{ $cardTxnId }}</div>
+                                    </div>
+                                    <div class="field">
+                                        <div class="field-label">Amount</div>
+                                        <div class="field-value">{{ $cardAmount }}</div>
+                                    </div>
+                                    <div class="field">
+                                        <div class="field-label">Case ID</div>
+                                        <div class="field-value">{{ $cardCaseId ?? '-' }}</div>
+                                    </div>
+                                </div>
+                                <div class="hint">
+                                    Payment screenshot was detected and is waiting for admin review. Read-only for now.
+                                </div>
+                            </div>
+                        @else
                         <div class="message-bubble {{ $bubbleClass }}">
                             @if ($isImage)
                                 <div class="image-preview">
@@ -249,45 +285,11 @@
                                 @if ($imageCaption)
                                     <div style="margin-top:8px;font-size:.85rem;color:#4b5563;">{{ $imageCaption }}</div>
                                 @endif
-                            @elseif ($isPaymentReview)
-                                @php
-                                    $pcMeta = $message->metadata;
-                                    $cardProvider = $pcMeta['provider'] ?? '-';
-                                    $cardTxnId = $pcMeta['transaction_id'] ?? '-';
-                                    $cardAmount = $pcMeta['amount'] ? number_format($pcMeta['amount']) . ' MMK' : '-';
-                                    $cardCaseId = $pcMeta['payment_case_id'] ?? null;
-                                @endphp
-                                <div class="payment-card">
-                                    <div class="payment-card-header">
-                                        &#128179; Payment Review
-                                        <span class="badge">Pending Review</span>
-                                    </div>
-                                    <div class="fields">
-                                        <div class="field">
-                                            <div class="field-label">Provider</div>
-                                            <div class="field-value">{{ $cardProvider }}</div>
-                                        </div>
-                                        <div class="field">
-                                            <div class="field-label">Transaction ID</div>
-                                            <div class="field-value">{{ $cardTxnId }}</div>
-                                        </div>
-                                        <div class="field">
-                                            <div class="field-label">Amount</div>
-                                            <div class="field-value">{{ $cardAmount }}</div>
-                                        </div>
-                                        <div class="field">
-                                            <div class="field-label">Case ID</div>
-                                            <div class="field-value">{{ $cardCaseId ?? '-' }}</div>
-                                        </div>
-                                    </div>
-                                    <div class="hint">
-                                        Payment screenshot was detected and is waiting for admin review. Read-only for now.
-                                    </div>
-                                </div>
                             @else
                                 {{ $message->text }}
                             @endif
                         </div>
+                        @endif
                     </div>
                 @empty
                     <div style="text-align:center;padding:40px 0" class="text-muted">
