@@ -140,6 +140,9 @@ class TelegramWebhookController extends Controller
         PaymentCheckClient $paymentCheckClient,
         PaymentScreenshotService $paymentScreenshotService,
     ): void {
+        $latestImageMessage = null;
+        $checkedAt = now()->toIso8601String();
+
         try {
             $fileId = $normalized['metadata']['telegram_file_id'] ?? null;
 
@@ -156,12 +159,20 @@ class TelegramWebhookController extends Controller
                 'telegram_file_id' => $fileId,
             ]);
 
-            if (! empty($workerResult['is_payment'])) {
-                $latestImageMessage = \App\Models\Message::where('conversation_id', $conversation->id)
-                    ->where('message_type', 'image')
-                    ->latest()
-                    ->first();
+            $latestImageMessage = \App\Models\Message::where('conversation_id', $conversation->id)
+                ->where('message_type', 'image')
+                ->latest()
+                ->first();
 
+            if ($latestImageMessage) {
+                $latestImageMessage->metadata = array_merge(
+                    $latestImageMessage->metadata ?? [],
+                    ['payment_check' => $this->buildPaymentCheckMeta($workerResult, $checkedAt)]
+                );
+                $latestImageMessage->save();
+            }
+
+            if (! empty($workerResult['is_payment'])) {
                 if ($latestImageMessage) {
                     $paymentScreenshotService->processImageMessage($latestImageMessage, $workerResult);
                 }
@@ -170,7 +181,37 @@ class TelegramWebhookController extends Controller
             Log::warning('Payment check failed for image', [
                 'error' => $e->getMessage(),
             ]);
+
+            if ($latestImageMessage) {
+                $latestImageMessage->metadata = array_merge(
+                    $latestImageMessage->metadata ?? [],
+                    ['payment_check' => [
+                        'checked' => true,
+                        'ok' => false,
+                        'is_payment' => false,
+                        'error' => mb_substr($e->getMessage(), 0, 500),
+                        'checked_at' => $checkedAt,
+                    ]]
+                );
+                $latestImageMessage->save();
+            }
         }
+    }
+
+    protected function buildPaymentCheckMeta(array $workerResult, string $checkedAt): array
+    {
+        return [
+            'checked' => true,
+            'ok' => $workerResult['ok'] ?? false,
+            'is_payment' => (bool) ($workerResult['is_payment'] ?? false),
+            'provider' => $workerResult['provider'] ?? null,
+            'transaction_id' => $workerResult['transaction_id'] ?? null,
+            'amount' => $workerResult['amount'] ?? null,
+            'confidence' => $workerResult['confidence'] ?? null,
+            'reason' => isset($workerResult['reason']) ? mb_substr((string) $workerResult['reason'], 0, 500) : null,
+            'error' => isset($workerResult['error']) ? mb_substr((string) $workerResult['error'], 0, 500) : null,
+            'checked_at' => $checkedAt,
+        ];
     }
 
     protected function downloadTelegramFile(string $fileId): string

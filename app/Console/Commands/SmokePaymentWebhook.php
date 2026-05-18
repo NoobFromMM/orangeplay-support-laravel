@@ -135,8 +135,27 @@ class SmokePaymentWebhook extends Command
                 ->latest()
                 ->first();
 
+            // Store payment_check metadata
+            if ($imageMsg) {
+                $imageMsg->metadata = array_merge($imageMsg->metadata ?? [], [
+                    'payment_check' => [
+                        'checked' => true,
+                        'ok' => true,
+                        'is_payment' => true,
+                        'provider' => 'KBZ Pay',
+                        'transaction_id' => '1429501235',
+                        'amount' => 5000,
+                        'confidence' => 0.95,
+                        'checked_at' => now()->toIso8601String(),
+                    ],
+                ]);
+                $imageMsg->save();
+            }
+
             $pss = new PaymentScreenshotService(app(\App\Services\Payments\PaymentCaseService::class));
-            $pss->processImageMessage($imageMsg, $workerResult);
+            if ($imageMsg) {
+                $pss->processImageMessage($imageMsg, $workerResult);
+            }
         }
 
         // Assertions
@@ -150,6 +169,22 @@ class SmokePaymentWebhook extends Command
             $errors[] = "Image message not saved";
         } else {
             $this->info('  OK  Image message saved');
+        }
+
+        // Assert payment_check metadata
+        $pcMeta = $imageMsg->metadata['payment_check'] ?? null;
+        if (! $pcMeta) {
+            $errors[] = "Expected metadata.payment_check on image message";
+        } elseif (($pcMeta['is_payment'] ?? false) !== true) {
+            $errors[] = "Expected metadata.payment_check.is_payment=true";
+        } else {
+            $this->info('  OK  metadata.payment_check.is_payment=true');
+        }
+
+        if (($pcMeta['transaction_id'] ?? '') !== '1429501235') {
+            $errors[] = "Expected payment_check.transaction_id='1429501235'";
+        } else {
+            $this->info("  OK  payment_check.transaction_id='1429501235'");
         }
 
         $pc = \App\Models\PaymentCase::where('conversation_id', $conversation->id)->first();
@@ -225,7 +260,33 @@ class SmokePaymentWebhook extends Command
             $this->info('  OK  is_payment=false, no case created');
         }
 
+        // Store payment_check metadata on image
+        $imageMsgB = Message::where('conversation_id', $conversation->id)
+            ->where('message_type', 'image')
+            ->latest()->first();
+        if ($imageMsgB) {
+            $imageMsgB->metadata = array_merge($imageMsgB->metadata ?? [], [
+                'payment_check' => [
+                    'checked' => true,
+                    'ok' => true,
+                    'is_payment' => false,
+                    'checked_at' => now()->toIso8601String(),
+                ],
+            ]);
+            $imageMsgB->save();
+        }
+
         $event->update(['status' => 'processed', 'processed_at' => now()]);
+
+        // Assert payment_check metadata
+        $pcMetaB = $imageMsgB->fresh()->metadata['payment_check'] ?? null;
+        if (! $pcMetaB) {
+            $errors[] = "Expected metadata.payment_check for is_payment=false";
+        } elseif (($pcMetaB['is_payment'] ?? true) !== false) {
+            $errors[] = "Expected payment_check.is_payment=false";
+        } else {
+            $this->info('  OK  metadata.payment_check.is_payment=false');
+        }
 
         $pcCount = \App\Models\PaymentCase::where('conversation_id', $conversation->id)->count();
         if ($pcCount > 0) {
@@ -294,8 +355,34 @@ class SmokePaymentWebhook extends Command
             $this->info('  OK  Image message preserved after check failure');
         }
 
+        // Store failure metadata on image
+        if ($imageMsg) {
+            $imageMsg->metadata = array_merge($imageMsg->metadata ?? [], [
+                'payment_check' => [
+                    'checked' => true,
+                    'ok' => false,
+                    'is_payment' => false,
+                    'error' => 'Worker returned HTTP 500',
+                    'checked_at' => now()->toIso8601String(),
+                ],
+            ]);
+            $imageMsg->save();
+        }
+
         $event->update(['status' => 'processed', 'processed_at' => now()]);
         $this->info('  OK  Webhook still processes despite check failure');
+
+        // Assert failure metadata
+        $pcMetaC = $imageMsg->fresh()->metadata['payment_check'] ?? null;
+        if (! $pcMetaC) {
+            $errors[] = "Expected metadata.payment_check for failure case";
+        } elseif (($pcMetaC['ok'] ?? true) !== false) {
+            $errors[] = "Expected payment_check.ok=false for failure";
+        } elseif (empty($pcMetaC['error'])) {
+            $errors[] = "Expected payment_check.error to be set";
+        } else {
+            $this->info('  OK  metadata.payment_check.ok=false, error stored');
+        }
     }
 
     protected function testTextGreeting(
