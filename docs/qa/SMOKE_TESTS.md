@@ -157,3 +157,25 @@ Test cases:
 ```bash
 php artisan smoke:telegram-image
 ```
+
+---
+
+## Image Admin Reply Regression Smoke Expected
+
+Tests the full image → admin reply → in_chat flow with faked Telegram network.
+
+Flow:
+1. Simulate Telegram photo → image saved, status=Needs Reply, no bot reply
+2. Admin replies via TelegramBotService → outbound admin message saved, status=in_chat
+3. Original image message and metadata preserved
+
+Assertions:
+- Image receive: webhook event, message_type=image, telegram_file_id, Needs Reply, no bot reply
+- Admin reply: send faked, admin outbound saved, sender_type=admin, source=dashboard, status=in_chat
+- Regression: original image still exists, telegram_file_id intact, timeline order correct
+
+### Run
+
+```bash
+php artisan smoke:image-admin-reply
+```

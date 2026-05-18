@@ -75,6 +75,7 @@
 ---
 
 ## Pending Features
+- F5A Image + Admin Reply Regression — pending manual test (smoke: `php artisan smoke:image-admin-reply`)
 - F4 Architecture Alignment Audit
 - F5 Image preview
 - F5 Payment screenshot
