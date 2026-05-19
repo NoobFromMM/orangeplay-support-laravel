@@ -10,12 +10,18 @@
 - Locked features must stay intact while new work lands.
 - Telegram behavior is the current proof point for the MVP.
 - Raw payload retention matters for debugging and future channel support.
+- Worker provider can be inconsistent (kbzpay vs wavepay for same screenshot), so duplicate matching uses transaction_id first, not provider.
+- Manual Telegram evidence must inspect the latest event only; stale data misleads debugging.
+- Always verify php artisan serve/ngrok are running when testing webhooks.
+- Http::fake chaining in Laravel causes cross-command interference; decouple smoke tests from Http::fake where possible.
+- `env()` caches values; use constructor injection for test-friendliness over env-dependent logic.
 
 ## Working Rules
 - One task = one feature or one bug.
 - Do not expand scope mid-task.
 - Keep services small and controllers readable.
 - Preserve Burmese text exactly.
+- No n8n: Laravel remains the single source of truth.
 
 ## Manual-First Rule
 - Smoke tests protect regressions.
