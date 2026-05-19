@@ -181,6 +181,7 @@
 ---
 
 ## Pending Features
+- F8 Duplicate Payment Detection — pending manual test (smoke: `php artisan smoke:payment-duplicate`)
 - F4 Architecture Alignment Audit
 - F5 Payment screenshot
 - F6 Viber channel

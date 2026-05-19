@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Webhooks;
 
 use App\Http\Controllers\Controller;
 use App\Models\WebhookEvent;
+use App\Services\Payments\DuplicatePaymentDetector;
 use App\Services\Payments\PaymentCheckClient;
 use App\Services\Payments\PaymentScreenshotService;
 use App\Services\Support\ConversationService;
@@ -25,6 +26,7 @@ class TelegramWebhookController extends Controller
         TelegramBotService $botService,
         PaymentCheckClient $paymentCheckClient,
         PaymentScreenshotService $paymentScreenshotService,
+        DuplicatePaymentDetector $duplicateDetector,
     ): JsonResponse {
         $update = $request->all();
 
@@ -90,6 +92,7 @@ class TelegramWebhookController extends Controller
                     $normalized,
                     $paymentCheckClient,
                     $paymentScreenshotService,
+                    $duplicateDetector,
                     $botService,
                 );
             } else {
@@ -148,6 +151,7 @@ class TelegramWebhookController extends Controller
         array $normalized,
         PaymentCheckClient $paymentCheckClient,
         PaymentScreenshotService $paymentScreenshotService,
+        DuplicatePaymentDetector $duplicateDetector,
         TelegramBotService $botService,
     ): void {
         $latestImageMessage = null;
@@ -184,10 +188,22 @@ class TelegramWebhookController extends Controller
 
             if (! empty($workerResult['is_payment'])) {
                 if ($latestImageMessage) {
-                    $paymentCase = $paymentScreenshotService->processImageMessage($latestImageMessage, $workerResult);
+                    $existing = $duplicateDetector->findDuplicate(
+                        $workerResult['provider'] ?? null,
+                        $workerResult['transaction_id'] ?? null,
+                    );
 
-                    if ($paymentCase) {
-                        $this->maybeAskForEmail($customer, $conversation, $normalized, $paymentCase, $botService);
+                    if ($existing) {
+                        $this->handleDuplicatePayment(
+                            $customer, $conversation, $normalized,
+                            $latestImageMessage, $existing, $workerResult, $botService,
+                        );
+                    } else {
+                        $paymentCase = $paymentScreenshotService->processImageMessage($latestImageMessage, $workerResult);
+
+                        if ($paymentCase) {
+                            $this->maybeAskForEmail($customer, $conversation, $normalized, $paymentCase, $botService);
+                        }
                     }
                 }
             }
@@ -246,6 +262,65 @@ class TelegramWebhookController extends Controller
         ]);
 
         $paymentCase->update(['status' => 'needs_email']);
+    }
+
+    protected function handleDuplicatePayment(
+        $customer,
+        $conversation,
+        array $normalized,
+        $imageMessage,
+        \App\Models\PaymentCase $existing,
+        array $workerResult,
+        TelegramBotService $botService,
+    ): void {
+        $replyTexts = [
+            'needs_email' => 'ဒီငွေလွှဲ Screenshot ကို လက်ခံထားပြီးပါပြီရှင့်။ သက်တမ်းတိုးမယ့် Orange Play account Email ကို ပို့ပေးပါရှင့်။',
+            'pending_review' => 'ဒီငွေလွှဲ Screenshot ကို လက်ခံထားပြီး Admin Team စစ်ဆေးနေပါပြီရှင့်။',
+            'approved' => 'ဒီငွေလွှဲ Screenshot ကို စစ်ဆေးအတည်ပြုပြီးသား ဖြစ်ပါတယ်ရှင့်။',
+            'rejected' => 'ဒီငွေလွှဲ Screenshot ကို အတည်မပြုနိုင်ခဲ့ပါရှင့်။ မှန်ကန်တဲ့ Screenshot အသစ်ကို ပြန်ပို့ပေးပါရှင့်။',
+        ];
+
+        $status = $existing->status;
+        $replyText = $replyTexts[$status] ?? 'ဒီငွေလွှဲ Screenshot ကို လက်ခံထားပြီးပါပြီရှင့်။';
+
+        $chatId = $normalized['platform_user_id'];
+        $botService->sendMessage($chatId, $replyText);
+
+        // Save duplicate notice timeline message
+        \App\Models\Message::create([
+            'conversation_id' => $conversation->id,
+            'customer_id' => $customer->id,
+            'platform' => $normalized['platform'],
+            'direction' => 'system',
+            'sender_type' => 'system',
+            'message_type' => 'payment_duplicate_notice',
+            'text' => 'Duplicate payment screenshot detected',
+            'metadata' => [
+                'duplicate_of_payment_case_id' => $existing->id,
+                'duplicate_status' => $existing->status,
+                'provider' => $workerResult['provider'] ?? null,
+                'transaction_id' => $workerResult['transaction_id'] ?? null,
+                'image_message_id' => $imageMessage->id,
+            ],
+        ]);
+
+        // Save outbound bot message
+        \App\Models\Message::create([
+            'conversation_id' => $conversation->id,
+            'customer_id' => $customer->id,
+            'platform' => $normalized['platform'],
+            'direction' => 'outbound',
+            'sender_type' => 'bot',
+            'message_type' => 'text',
+            'text' => $replyText,
+            'metadata' => [
+                'source' => 'telegram_bot',
+                'event' => 'payment_duplicate_detected',
+                'duplicate_of_payment_case_id' => $existing->id,
+                'duplicate_status' => $existing->status,
+                'transaction_id' => $workerResult['transaction_id'] ?? null,
+            ],
+        ]);
     }
 
     protected function tryAttachEmail(
