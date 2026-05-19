@@ -180,8 +180,22 @@
 
 ---
 
+### F8 — Duplicate Payment Detection
+**Status**: LOCKED
+
+**Manual evidence**:
+- Duplicate screenshot sent, detected by transaction_id=1429501235
+- Matched existing case 530 by txn only (provider differs: wavepay vs kbzpay)
+- No new payment_case created; payment_duplicate_notice saved
+- Status-specific bot reply sent: `ဒီငွေလွှဲ Screenshot ကို လက်ခံထားပြီးပါပြီရှင့်...`
+- metadata.event=payment_duplicate_detected, duplicate_of_payment_case_id=530
+- Different transaction_id still creates new case; missing txn not blocked
+
+**Smoke**: `php artisan smoke:payment-duplicate`
+
+---
+
 ## Pending Features
-- F8 Duplicate Payment Detection — pending manual test (smoke: `php artisan smoke:payment-duplicate`)
 - F4 Architecture Alignment Audit
 - F5 Payment screenshot
 - F6 Viber channel
