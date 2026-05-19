@@ -302,7 +302,7 @@
                         <div class="message-bubble {{ $bubbleClass }}">
                             <div class="card-header-row">
                                 <span class="sender-badge sender-{{ $message->sender_type }}">{{ $senderLabel }}</span>
-                                <span class="timeline-time">{{ $message->created_at->format('M j, Y \a\t g:ia') }}</span>
+                                <span class="timeline-time">{{ $message->created_at->timezone('Asia/Yangon')->format('M j, Y \a\t g:ia') }}</span>
                             </div>
                             @if ($isImage)
                                 <div class="image-preview">
