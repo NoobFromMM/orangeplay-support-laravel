@@ -136,21 +136,21 @@
 
 ---
 
-### F6 P3D — Payment Review Card UI + Desc Order
+### F6 P4 — Ask Email After Payment Screenshot
 **Status**: LOCKED
 
 **Manual evidence**:
-- Payment review card renders as compact white card with amber left-border
-- Card shows provider, transaction ID, amount, case ID — no raw worker data exposed
-- Screenshot image remains separate in timeline
-- Conversation timeline shows newest messages first (created_at DESC)
-- Admin reply appears at top after refresh
-- No secrets or tokens in rendered HTML
+- Real payment screenshot detected (cbpay, FT26124LFZLQ)
+- payment_case created id=205, status=needs_email
+- Bot email request sent: `Payment Screenshot ရရှိပါပြီရှင့်...`
+- Outbound bot message saved with metadata.event=ask_email_after_payment
+- metadata.payment_case_id=205 linked correctly
+- Dashboard shows payment review card + email request
+- No secrets exposed
 
 ---
 
 ## Pending Features
-- F6 P4 Ask Email After Payment — pending manual test (smoke: `php artisan smoke:payment-webhook`)
 - F4 Architecture Alignment Audit
 - F5 Payment screenshot
 - F6 Viber channel
