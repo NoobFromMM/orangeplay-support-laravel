@@ -1,6 +1,6 @@
 # Feature Locks
 
-## Locked Features
+## Locked Active Features (7)
 
 ### F1 — Telegram Greeting Flow
 **Status**: LOCKED
@@ -180,23 +180,21 @@
 
 ---
 
-### F8 — Duplicate Payment Detection
-**Status**: LOCKED
+## Removed/Deprecated Payment Runtime (R2)
+Payment runtime path stopped in Telegram webhook. Services/tables/UI preserved but not active.
 
-**Manual evidence**:
-- Duplicate screenshot sent, detected by transaction_id=1429501235
-- Matched existing case 530 by txn only (provider differs: wavepay vs kbzpay)
-- No new payment_case created; payment_duplicate_notice saved
-- Status-specific bot reply sent: `ဒီငွေလွှဲ Screenshot ကို လက်ခံထားပြီးပါပြီရှင့်...`
-- metadata.event=payment_duplicate_detected, duplicate_of_payment_case_id=530
-- Different transaction_id still creates new case; missing txn not blocked
-
-**Smoke**: `php artisan smoke:payment-duplicate`
-
----
+- ~~F6 P1 — Payment Case Foundation~~
+- ~~F6 P2 — Payment Screenshot Processing Service~~
+- ~~F6 P3 — Payment Webhook Integration~~
+- ~~F6 P3D — Payment Review Card UI + DESC Order~~
+- ~~F6 P4 — Ask Email After Payment Screenshot~~
+- ~~F6 P5 — Payment Email Attachment Flow~~
+- ~~F6 P6A — Payment Case Resolution Service~~
+- ~~F6 P6B — Dashboard Payment Approve/Reject Actions~~
+- ~~F8 — Duplicate Payment Detection~~
+- ~~P10B — Customer Emails Foundation~~
 
 ## Pending Features
-- P10B Customer Emails Foundation — pending manual test (smoke: `php artisan smoke:customer-emails`)
 - F4 Architecture Alignment Audit
 - F5 Payment screenshot
 - F6 Viber channel
