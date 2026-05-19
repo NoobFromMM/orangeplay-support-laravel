@@ -45,7 +45,7 @@ class PaymentCaseResolutionService
             'direction' => 'system',
             'sender_type' => 'system',
             'message_type' => 'payment_status_update',
-            'text' => $newStatus === 'approved' ? 'Payment approved' : 'Payment rejected',
+            'text' => $newStatus === 'approved' ? 'Payment review approved' : 'Payment review rejected',
             'metadata' => [
                 'payment_case_id' => $case->id,
                 'action' => $newStatus,

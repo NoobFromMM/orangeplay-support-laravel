@@ -273,13 +273,13 @@
                                 <div class="hint" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
                                     <span>
                                         @if ($caseStatus === 'pending_review')
-                                            Payment screenshot detected. Waiting for admin review.
+                                            Waiting for admin payment review.
                                         @elseif ($caseStatus === 'needs_email')
-                                            Waiting for customer email response.
+                                            Email requested from customer.
                                         @elseif ($caseStatus === 'approved')
-                                            Payment has been approved.
+                                            Payment review approved.
                                         @elseif ($caseStatus === 'rejected')
-                                            Payment has been rejected.
+                                            Payment review rejected.
                                         @else
                                             Payment review in progress.
                                         @endif
