@@ -82,6 +82,7 @@ class TelegramWebhookController extends Controller
                     $normalized,
                     $paymentCheckClient,
                     $paymentScreenshotService,
+                    $botService,
                 );
             } else {
                 $conversationService->setStatus($conversation, 'Needs Reply');
@@ -139,6 +140,7 @@ class TelegramWebhookController extends Controller
         array $normalized,
         PaymentCheckClient $paymentCheckClient,
         PaymentScreenshotService $paymentScreenshotService,
+        TelegramBotService $botService,
     ): void {
         $latestImageMessage = null;
         $checkedAt = now()->toIso8601String();
@@ -174,7 +176,11 @@ class TelegramWebhookController extends Controller
 
             if (! empty($workerResult['is_payment'])) {
                 if ($latestImageMessage) {
-                    $paymentScreenshotService->processImageMessage($latestImageMessage, $workerResult);
+                    $paymentCase = $paymentScreenshotService->processImageMessage($latestImageMessage, $workerResult);
+
+                    if ($paymentCase) {
+                        $this->maybeAskForEmail($customer, $conversation, $normalized, $paymentCase, $botService);
+                    }
                 }
             }
         } catch (\Throwable $e) {
@@ -196,6 +202,42 @@ class TelegramWebhookController extends Controller
                 $latestImageMessage->save();
             }
         }
+    }
+
+    protected function maybeAskForEmail(
+        $customer,
+        $conversation,
+        array $normalized,
+        \App\Models\PaymentCase $paymentCase,
+        TelegramBotService $botService,
+    ): void {
+        $customerEmail = $paymentCase->customer_email;
+
+        if (! empty($customerEmail)) {
+            return;
+        }
+
+        $chatId = $normalized['platform_user_id'];
+        $messageText = 'Payment Screenshot ရရှိပါပြီရှင့်။ ဘယ် Orange Play account Email ကို သက်တမ်းတိုးချင်တာလဲ ပို့ပေးပါရှင့်။';
+
+        $botService->sendMessage($chatId, $messageText);
+
+        \App\Models\Message::create([
+            'conversation_id' => $conversation->id,
+            'customer_id' => $customer->id,
+            'platform' => $normalized['platform'],
+            'direction' => 'outbound',
+            'sender_type' => 'bot',
+            'message_type' => 'text',
+            'text' => $messageText,
+            'metadata' => [
+                'source' => 'telegram_bot',
+                'event' => 'ask_email_after_payment',
+                'payment_case_id' => $paymentCase->id,
+            ],
+        ]);
+
+        $paymentCase->update(['status' => 'needs_email']);
     }
 
     protected function buildPaymentCheckMeta(array $workerResult, string $checkedAt): array

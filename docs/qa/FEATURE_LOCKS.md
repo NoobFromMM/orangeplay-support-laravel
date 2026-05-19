@@ -150,6 +150,7 @@
 ---
 
 ## Pending Features
+- F6 P4 Ask Email After Payment — pending manual test (smoke: `php artisan smoke:payment-webhook`)
 - F4 Architecture Alignment Audit
 - F5 Payment screenshot
 - F6 Viber channel

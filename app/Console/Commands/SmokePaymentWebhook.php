@@ -37,6 +37,9 @@ class SmokePaymentWebhook extends Command
             $this->info('Test A2: is_payment=false + provider+txn derived is_payment=true');
             $this->testDerivedPaymentImage($normalizer, $conversationService, $errors);
 
+            $this->info('Test A3: email request after payment');
+            $this->testEmailRequestAfterPayment($normalizer, $conversationService, $errors);
+
             $this->info('Test B: image + is_payment=false');
             $this->testNonPaymentImage($normalizer, $conversationService, $errors);
 
@@ -368,6 +371,84 @@ class SmokePaymentWebhook extends Command
             $errors[] = "Expected greeting reply for text hi";
         } else {
             $this->info("  OK  F1 greeting still works: status='{$conversation->fresh()->status}'");
+        }
+    }
+
+    protected function testEmailRequestAfterPayment(
+        TelegramUpdateNormalizer $normalizer,
+        ConversationService $conversationService,
+        array &$errors,
+    ): void {
+        $payload = $this->makePhotoPayload(91006);
+        $normalized = $normalizer->normalize($payload);
+
+        $event = WebhookEvent::create([
+            'channel' => 'telegram', 'event_type' => 'message',
+            'external_event_id' => '91006', 'external_user_id' => '666006',
+            'payload' => $payload, 'status' => 'received', 'attempts' => 1,
+        ]);
+
+        $customer = $conversationService->findOrCreateCustomer('telegram', '666006', ['display_name' => 'EmailUser']);
+        $conversation = $conversationService->findOrCreateConversation($customer);
+        $conversationService->saveInboundMessage($conversation, $normalized);
+        $conversationService->setStatus($conversation, 'Needs Reply');
+
+        $imageMsg = Message::where('conversation_id', $conversation->id)
+            ->where('message_type', 'image')->latest()->first();
+
+        $workerResult = [
+            'ok' => true, 'is_payment' => true,
+            'provider' => 'kbzpay', 'transaction_id' => '999888777',
+        ];
+
+        $pss = new PaymentScreenshotService(app(PaymentCaseService::class));
+        $paymentCase = $pss->processImageMessage($imageMsg, $workerResult);
+
+        if (! $paymentCase) {
+            $errors[] = "Expected payment case for email test";
+            return;
+        }
+
+        // Simulate email request (bot message)
+        $botMsg = Message::create([
+            'conversation_id' => $conversation->id,
+            'customer_id' => $customer->id,
+            'platform' => 'telegram',
+            'direction' => 'outbound',
+            'sender_type' => 'bot',
+            'message_type' => 'text',
+            'text' => 'Payment Screenshot ရရှိပါပြီရှင့်။ ဘယ် Orange Play account Email ကို သက်တမ်းတိုးချင်တာလဲ ပို့ပေးပါရှင့်။',
+            'metadata' => [
+                'source' => 'telegram_bot',
+                'event' => 'ask_email_after_payment',
+                'payment_case_id' => $paymentCase->id,
+            ],
+        ]);
+
+        $paymentCase->update(['status' => 'needs_email']);
+
+        $event->update(['status' => 'processed', 'processed_at' => now()]);
+
+        $this->info('  OK  payment_case created');
+        $this->info('  OK  bot email request message saved');
+
+        $botMeta = $botMsg->fresh()->metadata ?? [];
+        if (($botMeta['event'] ?? '') !== 'ask_email_after_payment') {
+            $errors[] = "Expected metadata.event='ask_email_after_payment'";
+        } else {
+            $this->info("  OK  metadata.event='ask_email_after_payment'");
+        }
+
+        if (($botMeta['payment_case_id'] ?? 0) !== $paymentCase->id) {
+            $errors[] = "Expected metadata.payment_case_id={$paymentCase->id}";
+        } else {
+            $this->info('  OK  metadata.payment_case_id linked');
+        }
+
+        if ($paymentCase->fresh()->status !== 'needs_email') {
+            $errors[] = "Expected status='needs_email', got '{$paymentCase->fresh()->status}'";
+        } else {
+            $this->info("  OK  payment_case status='needs_email'");
         }
     }
 
