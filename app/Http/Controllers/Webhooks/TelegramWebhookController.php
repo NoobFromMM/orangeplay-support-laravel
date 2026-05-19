@@ -336,7 +336,7 @@ class TelegramWebhookController extends Controller
         }
 
         $openCase = \App\Models\PaymentCase::where('customer_id', $customer->id)
-            ->where('status', 'needs_email')
+            ->whereIn('status', ['needs_email', 'pending_review'])
             ->whereNull('customer_email')
             ->latest()
             ->first();
@@ -345,9 +345,11 @@ class TelegramWebhookController extends Controller
             return false;
         }
 
+        $newStatus = $openCase->status === 'needs_email' ? 'pending_review' : $openCase->status;
+
         $openCase->update([
             'customer_email' => $email,
-            'status' => 'pending_review',
+            'status' => $newStatus,
         ]);
 
         $chatId = $normalized['platform_user_id'];

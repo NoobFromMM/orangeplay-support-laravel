@@ -33,6 +33,9 @@ class SmokePaymentEmailAttach extends Command
             $this->info('Test A: needs_email case + valid email');
             $this->testEmailAttachToCase($normalizer, $conversationService, $errors);
 
+            $this->info('Test A2: pending_review + no email + valid email');
+            $this->testEmailAttachPendingReview($normalizer, $conversationService, $errors);
+
             $this->info('Test B: duplicate email after pending_review');
             $this->testDuplicateEmailAfterReview($normalizer, $conversationService, $errors);
 
@@ -143,6 +146,68 @@ class SmokePaymentEmailAttach extends Command
             $errors[] = "Expected metadata.customer_email='customer@orangeplay.com'";
         } else {
             $this->info("  OK  metadata.customer_email='customer@orangeplay.com'");
+        }
+
+        $this->newLine();
+    }
+
+    protected function testEmailAttachPendingReview(
+        TelegramUpdateNormalizer $normalizer,
+        ConversationService $conversationService,
+        array &$errors,
+    ): void {
+        $customer = $conversationService->findOrCreateCustomer('telegram', '777704', ['display_name' => 'PendRevAttach']);
+        $conversation = $conversationService->findOrCreateConversation($customer);
+
+        $paymentCase = PaymentCase::create([
+            'customer_id' => $customer->id,
+            'conversation_id' => $conversation->id,
+            'provider' => 'kbzpay',
+            'transaction_id' => '999111222',
+            'status' => 'pending_review',
+        ]);
+
+        $textPayload = $this->makeTextPayload(92004, 'user@example.com');
+        $normalized = $normalizer->normalize($textPayload);
+
+        WebhookEvent::create([
+            'channel' => 'telegram', 'event_type' => 'message',
+            'external_event_id' => '92004', 'external_user_id' => '777704',
+            'payload' => $textPayload, 'status' => 'received', 'attempts' => 1,
+        ]);
+
+        $conversationService->saveInboundMessage($conversation, $normalized);
+
+        $paymentCase->update([
+            'customer_email' => 'user@example.com',
+        ]);
+
+        Message::create([
+            'conversation_id' => $conversation->id,
+            'customer_id' => $customer->id,
+            'platform' => 'telegram',
+            'direction' => 'outbound',
+            'sender_type' => 'bot',
+            'message_type' => 'text',
+            'text' => 'Email ရရှိပါပြီရှင့်...',
+            'metadata' => [
+                'source' => 'telegram_bot',
+                'event' => 'payment_email_received',
+                'payment_case_id' => $paymentCase->id,
+                'customer_email' => 'user@example.com',
+            ],
+        ]);
+
+        if ($paymentCase->fresh()->customer_email !== 'user@example.com') {
+            $errors[] = "Expected customer_email='user@example.com' on pending_review";
+        } else {
+            $this->info('  OK  customer_email attached to pending_review case');
+        }
+
+        if ($paymentCase->fresh()->status !== 'pending_review') {
+            $errors[] = "Expected status remains 'pending_review'";
+        } else {
+            $this->info("  OK  status remains 'pending_review'");
         }
 
         $this->newLine();

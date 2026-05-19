@@ -8,20 +8,15 @@ class DuplicatePaymentDetector
 {
     public function findDuplicate(?string $provider, ?string $transactionId): ?PaymentCase
     {
-        $provider = $this->normalizeProvider($provider);
         $transactionId = $this->normalizeTransactionId($transactionId);
 
         if (empty($transactionId)) {
             return null;
         }
 
-        $query = PaymentCase::where('transaction_id', $transactionId);
-
-        if (! empty($provider)) {
-            $query->where('provider', $provider);
-        }
-
-        return $query->latest()->first();
+        return PaymentCase::where('transaction_id', $transactionId)
+            ->latest()
+            ->first();
     }
 
     public function normalizeProvider(?string $provider): ?string

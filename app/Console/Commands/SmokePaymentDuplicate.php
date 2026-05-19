@@ -108,15 +108,20 @@ class SmokePaymentDuplicate extends Command
         $customer = $conversationService->findOrCreateCustomer('telegram', '99902', ['display_name' => 'Dup2']);
         $conversation = $conversationService->findOrCreateConversation($customer);
 
-        PaymentCase::create([
+        $existing = PaymentCase::create([
             'customer_id' => $customer->id, 'conversation_id' => $conversation->id,
             'provider' => 'ayapay', 'transaction_id' => 'DUP-TXN-002', 'status' => 'pending_review',
         ]);
 
         $detector = new DuplicatePaymentDetector;
         $dup = $detector->findDuplicate('aya pay', 'DUP-TXN-002');
-        if (! $dup) { $errors[] = "Expected duplicate for pending_review"; }
-        $this->info('  OK  Duplicate pending_review detected with normalized provider');
+        if (! $dup) { $errors[] = "Expected duplicate for pending_review (txn match)"; return; }
+        $this->info('  OK  Duplicate pending_review detected by transaction_id');
+        if ($dup->id !== $existing->id) { $errors[] = "Wrong duplicate case id"; }
+        // Different provider with same txn should still be duplicate
+        $dup2 = $detector->findDuplicate('different_provider', 'DUP-TXN-002');
+        if (! $dup2) { $errors[] = "Expected duplicate with same txn, different provider"; }
+        if ($dup2->id !== $existing->id) { $errors[] = "Duplicate id mismatch for cross-provider match"; } else { $this->info('  OK  Same txn different provider = duplicate'); }
         $this->newLine();
     }
 
