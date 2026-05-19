@@ -166,20 +166,21 @@
 
 ---
 
-### F6 P6B — Dashboard Payment Approve/Reject Actions
+### F7 — FAQ Admin Data Input Management
 **Status**: LOCKED
 
 **Manual evidence**:
-- Case 232 approved via dashboard Approve button (status→approved, reviewed_at set)
-- Case 97 rejected via dashboard Reject button (status→rejected, reviewed_at set)
-- Payment status update timeline messages created (action=approved/rejected)
-- Dashboard shows approved/rejected text, buttons hidden for resolved cases
-- Raw worker_response hidden, no secrets exposed
+- Created FAQ via dashboard with Burmese keyword `စမ်းမေးခွန်း`
+- Bot replied with exact FAQ answer when keyword matched (active)
+- FAQ deactivated; same keyword no longer triggered auto reply
+- Dashboard shows inactive badge, FAQ list renders correctly
+- No secrets exposed
+
+**Smoke**: `php artisan smoke:faq-admin`
 
 ---
 
 ## Pending Features
-- F7 FAQ Admin Management — pending manual test (smoke: `php artisan smoke:faq-admin`)
 - F4 Architecture Alignment Audit
 - F5 Payment screenshot
 - F6 Viber channel

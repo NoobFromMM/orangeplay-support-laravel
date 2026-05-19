@@ -65,7 +65,7 @@ ALL ASSERTIONS PASSED
 php artisan smoke:locked
 ```
 
-Runs all locked feature smoke tests. Currently runs `smoke:f1`, `smoke:f2`, `smoke:f3`, `smoke:webhook-events`, `smoke:telegram-image`, `smoke:image-admin-reply`, `smoke:payment-foundation`, `smoke:payment-screenshot`, `smoke:payment-webhook`, `smoke:payment-email-attach`, and `smoke:payment-resolution`.
+Runs all locked feature smoke tests. Currently runs `smoke:f1`, `smoke:f2`, `smoke:f3`, `smoke:webhook-events`, `smoke:telegram-image`, `smoke:image-admin-reply`, `smoke:payment-foundation`, `smoke:payment-screenshot`, `smoke:payment-webhook`, `smoke:payment-email-attach`, `smoke:payment-resolution`, and `smoke:faq-admin`.
 
 ---
 

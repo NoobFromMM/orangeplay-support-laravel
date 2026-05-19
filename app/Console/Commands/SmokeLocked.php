@@ -21,7 +21,7 @@ class SmokeLocked extends Command
             'smoke:f1', 'smoke:f2', 'smoke:f3',
             'smoke:webhook-events', 'smoke:telegram-image', 'smoke:image-admin-reply',
             'smoke:payment-foundation', 'smoke:payment-screenshot', 'smoke:payment-webhook',
-            'smoke:payment-email-attach', 'smoke:payment-resolution',
+            'smoke:payment-email-attach', 'smoke:payment-resolution', 'smoke:faq-admin',
         ];
 
         foreach ($commands as $command) {
