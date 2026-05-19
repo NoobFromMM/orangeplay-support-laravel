@@ -167,6 +167,7 @@
 ---
 
 ## Pending Features
+- F6 P6B Dashboard Approve/Reject Buttons — pending manual test
 - F4 Architecture Alignment Audit
 - F5 Payment screenshot
 - F6 Viber channel

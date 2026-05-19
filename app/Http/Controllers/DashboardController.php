@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Conversation;
 use App\Models\Customer;
 use App\Models\Message;
+use App\Models\PaymentCase;
 use App\Services\Support\ConversationService;
 use App\Services\Telegram\TelegramBotService;
 use Illuminate\Http\RedirectResponse;
@@ -38,7 +39,11 @@ class DashboardController extends Controller
             ->latest('last_message_at')
             ->first();
 
-        return view('dashboard.conversation', compact('customer', 'messages', 'conversation'));
+        $paymentCases = PaymentCase::where('customer_id', $customer->id)
+            ->latest()
+            ->get();
+
+        return view('dashboard.conversation', compact('customer', 'messages', 'conversation', 'paymentCases'));
     }
 
     public function sendReply(

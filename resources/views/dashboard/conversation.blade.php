@@ -266,8 +266,36 @@
                                         <div class="field-value">{{ $cardEmail ?? '-' }}</div>
                                     </div>
                                 </div>
-                                <div class="hint">
-                                    Payment screenshot was detected and is waiting for admin review. Read-only for now.
+                                @php
+                                    $matchedCase = $cardCaseId ? $paymentCases->firstWhere('id', $cardCaseId) : null;
+                                    $caseStatus = $matchedCase?->status;
+                                @endphp
+                                <div class="hint" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+                                    <span>
+                                        @if ($caseStatus === 'pending_review')
+                                            Payment screenshot detected. Waiting for admin review.
+                                        @elseif ($caseStatus === 'needs_email')
+                                            Waiting for customer email response.
+                                        @elseif ($caseStatus === 'approved')
+                                            Payment has been approved.
+                                        @elseif ($caseStatus === 'rejected')
+                                            Payment has been rejected.
+                                        @else
+                                            Payment review in progress.
+                                        @endif
+                                    </span>
+                                    @if ($caseStatus === 'pending_review' && $matchedCase)
+                                        <span style="display:flex;gap:6px">
+                                            <form method="POST" action="/payments/{{ $matchedCase->id }}/approve" style="display:inline">
+                                                @csrf
+                                                <button type="submit" style="padding:4px 14px;border-radius:6px;border:1px solid #059669;background:#ecfdf5;color:#059669;font-size:.75rem;font-weight:600;cursor:pointer">Approve</button>
+                                            </form>
+                                            <form method="POST" action="/payments/{{ $matchedCase->id }}/reject" style="display:inline">
+                                                @csrf
+                                                <button type="submit" style="padding:4px 14px;border-radius:6px;border:1px solid #dc2626;background:#fef2f2;color:#dc2626;font-size:.75rem;font-weight:600;cursor:pointer">Reject</button>
+                                            </form>
+                                        </span>
+                                    @endif
                                 </div>
                             </div>
                         @else
