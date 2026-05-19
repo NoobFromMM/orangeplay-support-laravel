@@ -153,6 +153,7 @@
 ---
 
 ## Pending Features
+- F6 P6A Payment Case Resolution Service — pending manual test (smoke: `php artisan smoke:payment-resolution`)
 - F4 Architecture Alignment Audit
 - F5 Payment screenshot
 - F6 Viber channel
