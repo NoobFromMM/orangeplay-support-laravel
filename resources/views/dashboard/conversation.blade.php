@@ -238,7 +238,7 @@
                             <div class="payment-card">
                                 <div class="card-header-row">
                                     <span class="sender-badge sender-{{ $message->sender_type }}">{{ $senderLabel }}</span>
-                                    <span class="timeline-time">{{ $message->created_at->format('M j, Y \a\t g:ia') }}</span>
+                                    <span class="timeline-time">{{ $message->created_at->timezone('Asia/Yangon')->format('M j, Y \a\t g:ia') }}</span>
                                 </div>
                                 <div class="payment-card-header" style="margin-bottom:6px">
                                     &#128179; Payment Review
