@@ -62,13 +62,13 @@
         .timeline { }
         .timeline-item { padding: 20px 0; border-bottom: 1px solid #f3f4f6; position: relative; }
         .timeline-item:last-child { border-bottom: none; padding-bottom: 0; }
-        .timeline-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; flex-wrap: wrap; gap: 6px; }
+        .card-header-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; flex-wrap: wrap; gap: 6px; }
         .sender-badge { display: inline-flex; align-items: center; gap: 5px; padding: 2px 10px; border-radius: 6px; font-size: .7rem; font-weight: 600; text-transform: uppercase; letter-spacing: .03em; }
         .sender-customer { background: #dbeafe; color: #1e40af; }
         .sender-bot { background: #ede9fe; color: #6b21a8; }
         .sender-admin { background: #d1fae5; color: #065f46; }
         .sender-system { background: #f3f4f6; color: #6b7280; }
-        .timeline-time { font-size: .75rem; color: #9ca3af; white-space: nowrap; }
+        .timeline-time { font-size: .72rem; color: #9ca3af; white-space: nowrap; }
         .message-bubble {
             border-radius: 12px;
             padding: 14px 16px;
@@ -226,10 +226,6 @@
                         $imageCaption = $message->metadata['caption'] ?? null;
                     @endphp
                     <div class="timeline-item">
-                        <div class="timeline-header">
-                            <span class="sender-badge sender-{{ $message->sender_type }}">{{ $senderLabel }}</span>
-                            <span class="timeline-time">{{ $message->created_at->format('M j, Y \a\t g:ia') }}</span>
-                        </div>
                         @if ($isPaymentReview)
                             @php
                                 $pcMeta = $message->metadata;
@@ -240,7 +236,11 @@
                                 $cardEmail = $pcMeta['customer_email'] ?? null;
                             @endphp
                             <div class="payment-card">
-                                <div class="payment-card-header">
+                                <div class="card-header-row">
+                                    <span class="sender-badge sender-{{ $message->sender_type }}">{{ $senderLabel }}</span>
+                                    <span class="timeline-time">{{ $message->created_at->format('M j, Y \a\t g:ia') }}</span>
+                                </div>
+                                <div class="payment-card-header" style="margin-bottom:6px">
                                     &#128179; Payment Review
                                     <span class="badge">Pending Review</span>
                                 </div>
@@ -300,6 +300,10 @@
                             </div>
                         @else
                         <div class="message-bubble {{ $bubbleClass }}">
+                            <div class="card-header-row">
+                                <span class="sender-badge sender-{{ $message->sender_type }}">{{ $senderLabel }}</span>
+                                <span class="timeline-time">{{ $message->created_at->format('M j, Y \a\t g:ia') }}</span>
+                            </div>
                             @if ($isImage)
                                 <div class="image-preview">
                                     @if ($telegramFileId)
