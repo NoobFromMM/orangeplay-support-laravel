@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\FaqEntryController;
 use App\Http\Controllers\PaymentCaseController;
 use App\Http\Controllers\TelegramFileController;
 use App\Http\Controllers\Webhooks\TelegramWebhookController;
@@ -14,6 +15,13 @@ Route::post('/customers/{platform}/{platformUserId}/reply', [DashboardController
 
 Route::post('/payments/{paymentCase}/approve', [PaymentCaseController::class, 'approve']);
 Route::post('/payments/{paymentCase}/reject', [PaymentCaseController::class, 'reject']);
+
+Route::get('/dashboard/faqs', [FaqEntryController::class, 'index']);
+Route::get('/dashboard/faqs/create', [FaqEntryController::class, 'create']);
+Route::post('/dashboard/faqs', [FaqEntryController::class, 'store']);
+Route::get('/dashboard/faqs/{faqEntry}/edit', [FaqEntryController::class, 'edit']);
+Route::put('/dashboard/faqs/{faqEntry}', [FaqEntryController::class, 'update']);
+Route::post('/dashboard/faqs/{faqEntry}/toggle', [FaqEntryController::class, 'toggle']);
 
 Route::get('/telegram/file/{fileId}', [TelegramFileController::class, 'show']);
 

@@ -179,6 +179,7 @@
 ---
 
 ## Pending Features
+- F7 FAQ Admin Management — pending manual test (smoke: `php artisan smoke:faq-admin`)
 - F4 Architecture Alignment Audit
 - F5 Payment screenshot
 - F6 Viber channel

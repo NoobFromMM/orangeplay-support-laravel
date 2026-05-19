@@ -65,7 +65,10 @@
     <nav class="nav">
         <div class="nav-inner">
             <a href="/dashboard" class="nav-brand">OrangePlay <span>Support</span></a>
-            <span class="nav-meta">Dashboard</span>
+            <div class="nav-links" style="display:flex;gap:20px;font-size:.85rem">
+                <a href="/dashboard" style="color:#2563eb">Dashboard</a>
+                <a href="/dashboard/faqs">FAQ Manager</a>
+            </div>
         </div>
     </nav>
 
