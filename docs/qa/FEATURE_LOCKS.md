@@ -166,8 +166,19 @@
 
 ---
 
+### F6 P6B — Dashboard Payment Approve/Reject Actions
+**Status**: LOCKED
+
+**Manual evidence**:
+- Case 232 approved via dashboard Approve button (status→approved, reviewed_at set)
+- Case 97 rejected via dashboard Reject button (status→rejected, reviewed_at set)
+- Payment status update timeline messages created (action=approved/rejected)
+- Dashboard shows approved/rejected text, buttons hidden for resolved cases
+- Raw worker_response hidden, no secrets exposed
+
+---
+
 ## Pending Features
-- F6 P6B Dashboard Approve/Reject Buttons — pending manual test
 - F4 Architecture Alignment Audit
 - F5 Payment screenshot
 - F6 Viber channel
