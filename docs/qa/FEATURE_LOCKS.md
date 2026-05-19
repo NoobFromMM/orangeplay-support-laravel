@@ -196,6 +196,7 @@
 ---
 
 ## Pending Features
+- P10B Customer Emails Foundation — pending manual test (smoke: `php artisan smoke:customer-emails`)
 - F4 Architecture Alignment Audit
 - F5 Payment screenshot
 - F6 Viber channel
