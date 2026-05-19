@@ -152,8 +152,21 @@
 
 ---
 
+### F6 P6A — Payment Case Resolution Service
+**Status**: LOCKED
+
+**Evidence**:
+- PaymentCaseResolutionService with approve/reject methods
+- Only pending_review cases can be resolved (guards on needs_email/approved/rejected)
+- Creates payment_status_update timeline message with reviewer metadata
+- Smoke covers: approve, reject, block needs_email, duplicate approve, reject approved
+- Service only — no routes or dashboard UI yet
+
+**Smoke**: `php artisan smoke:payment-resolution`
+
+---
+
 ## Pending Features
-- F6 P6A Payment Case Resolution Service — pending manual test (smoke: `php artisan smoke:payment-resolution`)
 - F4 Architecture Alignment Audit
 - F5 Payment screenshot
 - F6 Viber channel
