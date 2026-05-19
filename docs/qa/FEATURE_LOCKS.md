@@ -136,22 +136,23 @@
 
 ---
 
-### F6 P4 — Ask Email After Payment Screenshot
+### F6 P5 — Payment Email Attachment Flow
 **Status**: LOCKED
 
 **Manual evidence**:
-- Real payment screenshot detected (cbpay, FT26124LFZLQ)
-- payment_case created id=205, status=needs_email
-- Bot email request sent: `Payment Screenshot ရရှိပါပြီရှင့်...`
-- Outbound bot message saved with metadata.event=ask_email_after_payment
-- metadata.payment_case_id=205 linked correctly
-- Dashboard shows payment review card + email request
-- No secrets exposed
+- payment screenshot sent + bot asked for email
+- customer replied with email: `customer@orangeplay.com`
+- payment_case id=232 updated: customer_email=customer@orangeplay.com, status=pending_review
+- bot confirmation sent with metadata.event=payment_email_received
+- metadata.payment_case_id=232 linked correctly
+- only 1 confirmation sent (no duplicate)
+- dashboard shows email on payment card, no secrets
+
+**Smoke**: `php artisan smoke:payment-email-attach`
 
 ---
 
 ## Pending Features
-- F6 P5 Attach Payment Email — pending manual test (smoke: `php artisan smoke:payment-email-attach`)
 - F4 Architecture Alignment Audit
 - F5 Payment screenshot
 - F6 Viber channel
