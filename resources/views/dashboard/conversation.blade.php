@@ -237,6 +237,7 @@
                                 $cardTxnId = $pcMeta['transaction_id'] ?? '-';
                                 $cardAmount = $pcMeta['amount'] ? number_format($pcMeta['amount']) . ' MMK' : '-';
                                 $cardCaseId = $pcMeta['payment_case_id'] ?? null;
+                                $cardEmail = $pcMeta['customer_email'] ?? null;
                             @endphp
                             <div class="payment-card">
                                 <div class="payment-card-header">
@@ -259,6 +260,10 @@
                                     <div class="field">
                                         <div class="field-label">Case ID</div>
                                         <div class="field-value">{{ $cardCaseId ?? '-' }}</div>
+                                    </div>
+                                    <div class="field">
+                                        <div class="field-label">Email</div>
+                                        <div class="field-value">{{ $cardEmail ?? '-' }}</div>
                                     </div>
                                 </div>
                                 <div class="hint">

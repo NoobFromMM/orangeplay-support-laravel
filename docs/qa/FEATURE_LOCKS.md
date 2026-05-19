@@ -151,6 +151,7 @@
 ---
 
 ## Pending Features
+- F6 P5 Attach Payment Email — pending manual test (smoke: `php artisan smoke:payment-email-attach`)
 - F4 Architecture Alignment Audit
 - F5 Payment screenshot
 - F6 Viber channel

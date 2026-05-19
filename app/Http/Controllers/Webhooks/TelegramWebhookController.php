@@ -57,7 +57,15 @@ class TelegramWebhookController extends Controller
             if ($normalized['message_type'] === 'text') {
                 $matchedEntry = $faqMatcher->match($normalized['text']);
 
-                if ($matchedEntry) {
+                // Before FAQ, check for payment email attachment
+                $emailAttached = false;
+                if ($normalized['text']) {
+                    $emailAttached = $this->tryAttachEmail($customer, $conversation, $normalized, $botService);
+                }
+
+                if ($emailAttached) {
+                    $conversationService->setStatus($conversation, 'pending_review');
+                } elseif ($matchedEntry) {
                     $replyText = $matchedEntry->answer_text;
 
                     $chatId = $normalized['platform_user_id'];
@@ -238,6 +246,72 @@ class TelegramWebhookController extends Controller
         ]);
 
         $paymentCase->update(['status' => 'needs_email']);
+    }
+
+    protected function tryAttachEmail(
+        $customer,
+        $conversation,
+        array $normalized,
+        TelegramBotService $botService,
+    ): bool {
+        $email = $this->extractEmail($normalized['text'] ?? '');
+
+        if (! $email) {
+            return false;
+        }
+
+        $openCase = \App\Models\PaymentCase::where('customer_id', $customer->id)
+            ->where('status', 'needs_email')
+            ->whereNull('customer_email')
+            ->latest()
+            ->first();
+
+        if (! $openCase) {
+            return false;
+        }
+
+        $openCase->update([
+            'customer_email' => $email,
+            'status' => 'pending_review',
+        ]);
+
+        $chatId = $normalized['platform_user_id'];
+        $messageText = 'Email ရရှိပါပြီရှင့်။ Admin Team မှ ငွေလွှဲအချက်အလက်ကို စစ်ဆေးပြီး ပြန်လည်ဆက်သွယ်ပေးပါမယ်။';
+
+        $botService->sendMessage($chatId, $messageText);
+
+        \App\Models\Message::create([
+            'conversation_id' => $conversation->id,
+            'customer_id' => $customer->id,
+            'platform' => $normalized['platform'],
+            'direction' => 'outbound',
+            'sender_type' => 'bot',
+            'message_type' => 'text',
+            'text' => $messageText,
+            'metadata' => [
+                'source' => 'telegram_bot',
+                'event' => 'payment_email_received',
+                'payment_case_id' => $openCase->id,
+                'customer_email' => $email,
+            ],
+        ]);
+
+        return true;
+    }
+
+    protected function extractEmail(?string $text): ?string
+    {
+        if (empty($text)) {
+            return null;
+        }
+
+        $trimmed = trim($text);
+
+        if (preg_match('/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/', $trimmed)) {
+            return mb_strtolower($trimmed);
+        }
+
+        return null;
     }
 
     protected function buildPaymentCheckMeta(array $workerResult, string $checkedAt): array
