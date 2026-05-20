@@ -25,6 +25,7 @@ class ConversationStatusWorkflowTest extends TestCase
         $conversation = Conversation::create([
             'customer_id' => $customer->id,
             'status' => 'Needs Reply',
+            'bot_paused' => false,
             'last_message_at' => now(),
         ]);
 
@@ -47,6 +48,7 @@ class ConversationStatusWorkflowTest extends TestCase
         $resolveResponse = $this->post("/customers/telegram/{$customer->platform_user_id}/resolve");
         $resolveResponse->assertRedirect();
         $this->assertSame('resolved', $conversation->fresh()->status);
+        $this->assertFalse((bool) $conversation->fresh()->bot_paused);
 
         $resolvedPage = $this->get("/customers/telegram/{$customer->platform_user_id}");
         $resolvedPage->assertOk();
@@ -59,6 +61,7 @@ class ConversationStatusWorkflowTest extends TestCase
         $reopenResponse = $this->post("/customers/telegram/{$customer->platform_user_id}/reopen");
         $reopenResponse->assertRedirect();
         $this->assertSame('Needs Reply', $conversation->fresh()->status);
+        $this->assertTrue((bool) $conversation->fresh()->bot_paused);
 
         $reopenedPage = $this->get("/customers/telegram/{$customer->platform_user_id}");
         $reopenedPage->assertOk();
@@ -81,6 +84,7 @@ class ConversationStatusWorkflowTest extends TestCase
         $conversation = Conversation::create([
             'customer_id' => $customer->id,
             'status' => 'Needs Reply',
+            'bot_paused' => false,
             'last_message_at' => now(),
         ]);
 
@@ -109,6 +113,7 @@ class ConversationStatusWorkflowTest extends TestCase
 
         $response->assertRedirect();
         $this->assertSame('Needs Reply', $conversation->fresh()->status);
+        $this->assertTrue((bool) $conversation->fresh()->bot_paused);
 
         $adminMessage = Message::where('conversation_id', $conversation->id)
             ->where('sender_type', 'admin')

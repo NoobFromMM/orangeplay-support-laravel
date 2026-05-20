@@ -42,6 +42,7 @@
         .status-in_chat { background: #fffbeb; color: #d97706; }
         .status-needs_reply { background: #eff6ff; color: #2563eb; }
         .status-new, .status-open { background: #f9fafb; color: #6b7280; }
+        .pause-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 9999px; font-size: .72rem; font-weight: 600; background: #fff7ed; color: #b45309; border: 1px solid #fed7aa; white-space: nowrap; }
 
         .alert { padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; font-size: .85rem; }
         .alert-success { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
@@ -242,6 +243,9 @@
                             <span class="status-dot status-dot-{{ $statusKey }}"></span>
                             {{ $statusLabel }}
                         </span>
+                        @if ($conversation->isBotPaused())
+                            <span class="pause-badge">Bot paused</span>
+                        @endif
                         @if ($conversation)
                             <div class="conversation-actions">
                                 @if ($status === 'resolved')

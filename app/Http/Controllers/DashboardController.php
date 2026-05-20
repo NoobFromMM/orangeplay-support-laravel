@@ -90,6 +90,8 @@ class DashboardController extends Controller
             ['source' => 'dashboard'],
         );
 
+        $conversation->updateWorkflow('Needs Reply', true);
+
         return back()->with('success', 'Reply sent.');
     }
 
@@ -104,7 +106,7 @@ class DashboardController extends Controller
             return back()->with('error', 'Conversation not found.');
         }
 
-        $conversationService->setStatus($conversation, 'resolved');
+        $conversation->updateWorkflow('resolved', false);
 
         return back()->with('success', 'Conversation marked resolved.');
     }
@@ -120,7 +122,7 @@ class DashboardController extends Controller
             return back()->with('error', 'Conversation not found.');
         }
 
-        $conversationService->setStatus($conversation, 'Needs Reply');
+        $conversation->updateWorkflow('Needs Reply', true);
 
         return back()->with('success', 'Conversation reopened.');
     }

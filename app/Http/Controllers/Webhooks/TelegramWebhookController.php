@@ -50,6 +50,16 @@ class TelegramWebhookController extends Controller
             $conversationService->saveInboundMessage($conversation, $normalized);
 
             if ($normalized['message_type'] === 'text') {
+                if ($conversation->isBotPaused()) {
+                    $conversation->updateWorkflow('Needs Reply');
+                    $event->update([
+                        'status' => 'processed',
+                        'processed_at' => now(),
+                    ]);
+
+                    return response()->json(['ok' => true]);
+                }
+
                 $matchedEntry = $faqMatcher->match($normalized['text']);
 
                 if ($matchedEntry) {
@@ -64,12 +74,12 @@ class TelegramWebhookController extends Controller
                         $replyText
                     );
 
-                    $conversationService->setStatus($conversation, 'resolved');
+                    $conversation->updateWorkflow('resolved', false);
                 } else {
-                    $conversationService->setStatus($conversation, 'Needs Reply');
+                    $conversation->updateWorkflow('Needs Reply', false);
                 }
             } else {
-                $conversationService->setStatus($conversation, 'Needs Reply');
+                $conversation->updateWorkflow('Needs Reply');
             }
 
             $event->update([

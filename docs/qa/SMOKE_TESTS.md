@@ -17,6 +17,7 @@ php artisan smoke:webhook-events
 php artisan smoke:telegram-image
 php artisan smoke:image-admin-reply
 php artisan smoke:faq-admin
+php artisan smoke:human-takeover
 ```
 
 If frontend assets exist:
@@ -121,7 +122,8 @@ Assertions:
 - Telegram send succeeds for valid chat_id
 - Admin outbound message saved with direction=outbound, sender_type=admin
 - metadata.source = dashboard
-- Conversation status = in_chat
+- Conversation status = Needs Reply
+- bot_paused = true
 - Timeline order = created_at ASC, id ASC
 - Failed send: no admin message saved, status unchanged
 
@@ -129,6 +131,26 @@ Assertions:
 
 ```bash
 php artisan smoke:f3
+```
+
+---
+
+## Human Takeover Smoke Expected
+
+Smoke tests without real Telegram network calls. Uses Http::fake.
+
+Test cases:
+1. FAQ match while bot active → bot replies, conversation resolves, bot_paused=false
+2. Admin reply → bot_paused=true, status=Needs Reply
+3. FAQ match while paused → no bot reply, status stays Needs Reply
+4. Manual resolve → bot_paused=false
+5. FAQ match after resolve → bot replies again, conversation resolves
+6. Manual reopen → bot_paused=true, status=Needs Reply
+
+### Run
+
+```bash
+php artisan smoke:human-takeover
 ```
 
 ---
@@ -167,16 +189,16 @@ php artisan smoke:telegram-image
 
 ## Image Admin Reply Regression Smoke Expected
 
-Tests the full image → admin reply → in_chat flow with faked Telegram network.
+Tests the full image → admin reply → bot pause flow with faked Telegram network.
 
 Flow:
 1. Simulate Telegram photo → image saved, status=Needs Reply, no bot reply
-2. Admin replies via TelegramBotService → outbound admin message saved, status=in_chat
+2. Admin replies via TelegramBotService → outbound admin message saved, status=Needs Reply, bot_paused=true
 3. Original image message and metadata preserved
 
 Assertions:
 - Image receive: webhook event, message_type=image, telegram_file_id, Needs Reply, no bot reply
-- Admin reply: send faked, admin outbound saved, sender_type=admin, source=dashboard, status=in_chat
+- Admin reply: send faked, admin outbound saved, sender_type=admin, source=dashboard, status=Needs Reply, bot_paused=true
 - Regression: original image still exists, telegram_file_id intact, timeline order correct
 
 ### Run

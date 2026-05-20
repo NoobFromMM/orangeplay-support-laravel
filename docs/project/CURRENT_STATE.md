@@ -18,7 +18,8 @@ Payment runtime removed from webhook (R2) and all payment code deleted from the 
 - FAQ match → bot auto-reply + status=resolved
 - FAQ miss → status=Needs Reply
 - Image/file → saved with preview + status=Needs Reply
-- Admin reply → reaches Telegram + status=in_chat
+- Admin reply → reaches Telegram + status=Needs Reply + bot paused
+- Human takeover active → inbound text skips FAQ auto-reply until manual resolve clears pause
 
 ## Current Routes
 - `POST /webhooks/telegram`
@@ -31,7 +32,9 @@ Payment runtime removed from webhook (R2) and all payment code deleted from the 
 
 ## Current Dashboard State
 - Blade-based MVP dashboard with compact styled UI
-- Customer list + per-customer conversation timeline (newest-first)
+- Customer list + per-customer conversation timeline (chronological)
+- Manual Resolve/Reopen controls on the conversation view
+- Small "Bot paused" indicator when human takeover is active
 - Image preview with Telegram file proxy
 - FAQ admin CRUD with active/inactive toggle
 - No payment UI, no approve/reject buttons, no payment cards

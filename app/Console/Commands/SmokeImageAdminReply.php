@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\DB;
 class SmokeImageAdminReply extends Command
 {
     protected $signature = 'smoke:image-admin-reply';
-    protected $description = 'Regression smoke: image receive + admin reply full flow';
+    protected $description = 'Regression smoke: image receive + admin reply full flow with bot pause';
 
     public function handle(
         TelegramUpdateNormalizer $normalizer,
@@ -155,7 +155,7 @@ class SmokeImageAdminReply extends Command
             'text',
             ['source' => 'dashboard'],
         );
-        $conversationService->setStatus($conversation, 'in_chat');
+        $conversation->updateWorkflow('Needs Reply', true);
 
         $adminMsg = Message::where('conversation_id', $conversation->id)
             ->where('sender_type', 'admin')
@@ -186,10 +186,16 @@ class SmokeImageAdminReply extends Command
             $this->info("  OK  metadata.source=dashboard");
         }
 
-        if ($conversation->fresh()->status !== 'in_chat') {
-            $errors[] = "Expected in_chat after admin reply, got {$conversation->fresh()->status}";
+        if ($conversation->fresh()->status !== 'Needs Reply') {
+            $errors[] = "Expected Needs Reply after admin reply, got {$conversation->fresh()->status}";
         } else {
-            $this->info("  OK  status='in_chat' after admin reply");
+            $this->info("  OK  status='Needs Reply' after admin reply");
+        }
+
+        if (! $conversation->fresh()->bot_paused) {
+            $errors[] = "Expected bot_paused=true after admin reply";
+        } else {
+            $this->info('  OK  bot_paused=true after admin reply');
         }
 
         // Original image still exists

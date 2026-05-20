@@ -70,7 +70,7 @@ class SmokeF3 extends Command
         ]);
 
         $conversation = $conversationService->findOrCreateConversation($customer);
-        $conversationService->setStatus($conversation, 'Needs Reply');
+        $conversation->updateWorkflow('Needs Reply', false);
 
         $botService = app(TelegramBotService::class);
         $sent = $botService->sendMessage('555000', 'Hello from admin');
@@ -88,6 +88,7 @@ class SmokeF3 extends Command
             'text',
             ['source' => 'dashboard'],
         );
+        $conversation->updateWorkflow('Needs Reply', true);
 
         $adminMessage = Message::where('conversation_id', $conversation->id)
             ->where('sender_type', 'admin')
@@ -122,6 +123,12 @@ class SmokeF3 extends Command
             $errors[] = "Expected status to remain 'Needs Reply', got '{$conversation->fresh()->status}'";
         } else {
             $this->info("  OK  conversation status remains 'Needs Reply'");
+        }
+
+        if (! $conversation->fresh()->bot_paused) {
+            $errors[] = "Expected bot_paused=true after admin reply";
+        } else {
+            $this->info('  OK  bot_paused=true after admin reply');
         }
 
         $messages = Message::where('conversation_id', $conversation->id)
