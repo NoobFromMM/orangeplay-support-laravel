@@ -43,9 +43,7 @@ class DashboardController extends Controller
             ->where('platform_user_id', $platformUserId)
             ->firstOrFail();
 
-        $conversation = Conversation::where('customer_id', $customer->id)
-            ->latest('last_message_at')
-            ->first();
+        $conversation = $this->findLatestConversation($customer);
 
         $messages = $conversation
             ? $conversation->messages()
@@ -92,8 +90,58 @@ class DashboardController extends Controller
             ['source' => 'dashboard'],
         );
 
-        $conversationService->setStatus($conversation, 'in_chat');
-
         return back()->with('success', 'Reply sent.');
+    }
+
+    public function resolve(
+        string $platform,
+        string $platformUserId,
+        ConversationService $conversationService,
+    ): RedirectResponse {
+        $conversation = $this->findLatestConversationForPlatformUser($platform, $platformUserId);
+
+        if (! $conversation) {
+            return back()->with('error', 'Conversation not found.');
+        }
+
+        $conversationService->setStatus($conversation, 'resolved');
+
+        return back()->with('success', 'Conversation marked resolved.');
+    }
+
+    public function reopen(
+        string $platform,
+        string $platformUserId,
+        ConversationService $conversationService,
+    ): RedirectResponse {
+        $conversation = $this->findLatestConversationForPlatformUser($platform, $platformUserId);
+
+        if (! $conversation) {
+            return back()->with('error', 'Conversation not found.');
+        }
+
+        $conversationService->setStatus($conversation, 'Needs Reply');
+
+        return back()->with('success', 'Conversation reopened.');
+    }
+
+    protected function findLatestConversation(Customer $customer): ?Conversation
+    {
+        return Conversation::where('customer_id', $customer->id)
+            ->latest('last_message_at')
+            ->first();
+    }
+
+    protected function findLatestConversationForPlatformUser(string $platform, string $platformUserId): ?Conversation
+    {
+        $customer = Customer::where('platform', $platform)
+            ->where('platform_user_id', $platformUserId)
+            ->first();
+
+        if (! $customer) {
+            return null;
+        }
+
+        return $this->findLatestConversation($customer);
     }
 }

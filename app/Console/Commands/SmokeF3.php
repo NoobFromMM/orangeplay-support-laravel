@@ -70,6 +70,7 @@ class SmokeF3 extends Command
         ]);
 
         $conversation = $conversationService->findOrCreateConversation($customer);
+        $conversationService->setStatus($conversation, 'Needs Reply');
 
         $botService = app(TelegramBotService::class);
         $sent = $botService->sendMessage('555000', 'Hello from admin');
@@ -87,8 +88,6 @@ class SmokeF3 extends Command
             'text',
             ['source' => 'dashboard'],
         );
-
-        $conversationService->setStatus($conversation, 'in_chat');
 
         $adminMessage = Message::where('conversation_id', $conversation->id)
             ->where('sender_type', 'admin')
@@ -119,10 +118,10 @@ class SmokeF3 extends Command
             $this->info("  OK  metadata.source='dashboard'");
         }
 
-        if ($conversation->fresh()->status !== 'in_chat') {
-            $errors[] = "Expected status='in_chat', got '{$conversation->fresh()->status}'";
+        if ($conversation->fresh()->status !== 'Needs Reply') {
+            $errors[] = "Expected status to remain 'Needs Reply', got '{$conversation->fresh()->status}'";
         } else {
-            $this->info("  OK  conversation status='in_chat'");
+            $this->info("  OK  conversation status remains 'Needs Reply'");
         }
 
         $messages = Message::where('conversation_id', $conversation->id)

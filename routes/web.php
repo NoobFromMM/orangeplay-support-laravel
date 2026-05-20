@@ -11,6 +11,8 @@ Route::post('/webhooks/telegram', TelegramWebhookController::class);
 Route::get('/dashboard', [DashboardController::class, 'index']);
 Route::get('/customers/{platform}/{platformUserId}', [DashboardController::class, 'showConversation']);
 Route::post('/customers/{platform}/{platformUserId}/reply', [DashboardController::class, 'sendReply']);
+Route::post('/customers/{platform}/{platformUserId}/resolve', [DashboardController::class, 'resolve']);
+Route::post('/customers/{platform}/{platformUserId}/reopen', [DashboardController::class, 'reopen']);
 
 Route::get('/dashboard/faqs', [FaqEntryController::class, 'index']);
 Route::get('/dashboard/faqs/create', [FaqEntryController::class, 'create']);

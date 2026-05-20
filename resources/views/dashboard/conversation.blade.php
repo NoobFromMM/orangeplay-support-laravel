@@ -58,6 +58,21 @@
         .btn:active { transform: scale(.97); }
         .btn-primary { background: #2563eb; color: #fff; }
         .btn-primary:hover { background: #1d4ed8; }
+        .btn-secondary {
+            background: #fff;
+            color: #1d4ed8;
+            border: 1px solid #bfdbfe;
+            padding: 8px 14px;
+            font-size: .78rem;
+        }
+        .btn-secondary:hover { background: #eff6ff; }
+        .conversation-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: flex-end;
+        }
+        .conversation-actions form { display: inline-flex; }
 
         /* Telegram-style chat */
         .chat-timeline {
@@ -227,6 +242,21 @@
                             <span class="status-dot status-dot-{{ $statusKey }}"></span>
                             {{ $statusLabel }}
                         </span>
+                        @if ($conversation)
+                            <div class="conversation-actions">
+                                @if ($status === 'resolved')
+                                    <form method="POST" action="/customers/{{ $customer->platform }}/{{ $customer->platform_user_id }}/reopen">
+                                        @csrf
+                                        <button type="submit" class="btn btn-secondary">Reopen</button>
+                                    </form>
+                                @else
+                                    <form method="POST" action="/customers/{{ $customer->platform }}/{{ $customer->platform_user_id }}/resolve">
+                                        @csrf
+                                        <button type="submit" class="btn btn-secondary">Resolve</button>
+                                    </form>
+                                @endif
+                            </div>
+                        @endif
                         @if ($conversation->created_at)
                             <div class="conversation-started">Started {{ $conversation->created_at->diffForHumans() }}</div>
                         @endif
