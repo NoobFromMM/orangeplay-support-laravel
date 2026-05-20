@@ -61,15 +61,15 @@
 
         /* Telegram-style chat */
         .chat-timeline { padding: 8px 0; }
-        .chat-row { display: flex; margin-bottom: 12px; }
+        .chat-row { display: flex; margin-bottom: 12px; align-items: flex-start; }
         .chat-row-inbound { justify-content: flex-start; }
         .chat-row-outbound { justify-content: flex-end; }
         .chat-bubble {
             max-width: 75%;
-            padding: 10px 14px;
-            border-radius: 16px;
+            padding: 8px 12px;
+            border-radius: 14px;
             font-size: .875rem;
-            line-height: 1.65;
+            line-height: 1.5;
             white-space: pre-wrap;
             word-break: break-word;
             position: relative;
@@ -86,8 +86,8 @@
         .chat-bubble-outbound-admin { background: #d1fae5; color: #065f46; }
         .chat-bubble-outbound-system { background: #f3f4f6; color: #4b5563; }
         .chat-bubble-meta {
-            display: flex; align-items: center; gap: 8px;
-            margin-bottom: 4px; font-size: .68rem; color: #9ca3af;
+            display: flex; align-items: center; gap: 6px;
+            margin-bottom: 2px; font-size: .65rem; color: #9ca3af;
         }
         .chat-row-outbound .chat-bubble-meta { justify-content: flex-end; }
         .chat-sender-dot {
