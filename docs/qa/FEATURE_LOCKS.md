@@ -1,6 +1,6 @@
 # Feature Locks
 
-## Locked Active Features (7)
+## Locked Active Features (8)
 
 ### F1 — Telegram Greeting Flow
 **Status**: LOCKED
@@ -103,8 +103,26 @@
 
 ---
 
+### F8 — Human Takeover Bot Pause
+**Status**: LOCKED
+
+**Purpose**: When an admin replies from the dashboard, the bot pauses auto-replies so the human can handle the conversation. Bot resumes on manual Resolve, pauses again on Reopen.
+
+**Behavior**:
+- FAQ match → bot auto reply + resolved only when bot_paused is false
+- FAQ miss → Needs Reply
+- Image/file inbound → Needs Reply
+- Admin reply → does not auto-resolve, enables bot_paused
+- While bot_paused is true, inbound FAQ-matching text must not trigger bot auto reply
+- Manual Resolve → resolved + clears bot_paused
+- Manual Reopen → Needs Reply + enables bot_paused
+
+**Smoke**: `php artisan smoke:human-takeover`
+
+---
+
 ## Payment Runtime — Removed (R2+R3)
-All payment features (F6 P1-P6B, F8, P10B) have been fully removed from the codebase. Services, models, controllers, routes, smoke commands, and UI all deleted. Legacy payment data in DB is inert.
+All payment features (F6 P1-P6B, old F8 duplicate detection, P10B) have been fully removed from the codebase.
 
 ## Pending Features
 - Dashboard auth before production
