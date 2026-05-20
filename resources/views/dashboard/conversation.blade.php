@@ -99,13 +99,6 @@
         .image-placeholder { padding: 40px 20px; text-align: center; background: #f3f4f6; border-radius: 8px; color: #6b7280; font-size: .85rem; }
         .image-preview img { transition: opacity .2s; }
         .image-preview img:hover { opacity: .9; }
-        .payment-card { background: #fff; border: 1px solid #e5e7eb; border-left: 3px solid #f59e0b; border-radius: 8px; padding: 14px 16px; margin-top: 4px; }
-        .payment-card-header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; font-size: .85rem; font-weight: 600; color: #374151; }
-        .payment-card .badge { display: inline-block; padding: 1px 8px; border-radius: 9999px; font-size: .65rem; font-weight: 600; background: #fef3c7; color: #92400e; }
-        .payment-card .fields { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 14px; margin-bottom: 6px; }
-        .payment-card .field-label { font-size: .65rem; font-weight: 600; color: #9ca3af; text-transform: uppercase; letter-spacing: .03em; margin-bottom: 1px; }
-        .payment-card .field-value { font-size: .8rem; color: #1f2937; word-break: break-all; font-family: 'SF Mono', 'Menlo', 'Consolas', monospace; }
-        .payment-card .hint { font-size: .7rem; color: #9ca3af; margin-top: 6px; padding-top: 6px; border-top: 1px solid #f3f4f6; }
         @media (max-width: 600px) {
             .customer-header { flex-direction: column; }
             .customer-meta-right { align-items: flex-start; }
@@ -221,84 +214,10 @@
                             default => 'message-bubble-inbound',
                         };
                         $isImage = $message->message_type === 'image';
-                        $isPaymentReview = $message->message_type === 'payment_review_card';
                         $telegramFileId = $message->metadata['telegram_file_id'] ?? null;
                         $imageCaption = $message->metadata['caption'] ?? null;
                     @endphp
                     <div class="timeline-item">
-                        @if ($isPaymentReview)
-                            @php
-                                $pcMeta = $message->metadata;
-                                $cardProvider = $pcMeta['provider'] ?? '-';
-                                $cardTxnId = $pcMeta['transaction_id'] ?? '-';
-                                $cardAmount = $pcMeta['amount'] ? number_format($pcMeta['amount']) . ' MMK' : '-';
-                                $cardCaseId = $pcMeta['payment_case_id'] ?? null;
-                                $cardEmail = $pcMeta['customer_email'] ?? null;
-                            @endphp
-                            <div class="payment-card">
-                                <div class="card-header-row">
-                                    <span class="sender-badge sender-{{ $message->sender_type }}">{{ $senderLabel }}</span>
-                                    <span class="timeline-time">{{ $message->created_at->timezone('Asia/Yangon')->format('M j, Y \a\t g:ia') }}</span>
-                                </div>
-                                <div class="payment-card-header" style="margin-bottom:6px">
-                                    &#128179; Payment Review
-                                    <span class="badge">Pending Review</span>
-                                </div>
-                                <div class="fields">
-                                    <div class="field">
-                                        <div class="field-label">Provider</div>
-                                        <div class="field-value">{{ $cardProvider }}</div>
-                                    </div>
-                                    <div class="field">
-                                        <div class="field-label">Transaction ID</div>
-                                        <div class="field-value">{{ $cardTxnId }}</div>
-                                    </div>
-                                    <div class="field">
-                                        <div class="field-label">Amount</div>
-                                        <div class="field-value">{{ $cardAmount }}</div>
-                                    </div>
-                                    <div class="field">
-                                        <div class="field-label">Case ID</div>
-                                        <div class="field-value">{{ $cardCaseId ?? '-' }}</div>
-                                    </div>
-                                    <div class="field">
-                                        <div class="field-label">Email</div>
-                                        <div class="field-value">{{ $cardEmail ?? '-' }}</div>
-                                    </div>
-                                </div>
-                                @php
-                                    $matchedCase = $cardCaseId ? $paymentCases->firstWhere('id', $cardCaseId) : null;
-                                    $caseStatus = $matchedCase?->status;
-                                @endphp
-                                <div class="hint" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
-                                    <span>
-                                        @if ($caseStatus === 'pending_review')
-                                            Waiting for admin payment review.
-                                        @elseif ($caseStatus === 'needs_email')
-                                            Email requested from customer.
-                                        @elseif ($caseStatus === 'approved')
-                                            Payment review approved.
-                                        @elseif ($caseStatus === 'rejected')
-                                            Payment review rejected.
-                                        @else
-                                            Payment review in progress.
-                                        @endif
-                                    </span>
-                                    @if ($caseStatus === 'pending_review' && $matchedCase)
-                                        <span style="display:flex;gap:6px">
-                                            <form method="POST" action="/payments/{{ $matchedCase->id }}/approve" style="display:inline">
-                                                @csrf
-                                                <button type="submit" style="padding:4px 14px;border-radius:6px;border:1px solid #059669;background:#ecfdf5;color:#059669;font-size:.75rem;font-weight:600;cursor:pointer">Approve</button>
-                                            </form>
-                                            <form method="POST" action="/payments/{{ $matchedCase->id }}/reject" style="display:inline">
-                                                @csrf
-                                                <button type="submit" style="padding:4px 14px;border-radius:6px;border:1px solid #dc2626;background:#fef2f2;color:#dc2626;font-size:.75rem;font-weight:600;cursor:pointer">Reject</button>
-                                            </form>
-                                        </span>
-                                    @endif
-                                </div>
-                            </div>
-                        @else
                         <div class="message-bubble {{ $bubbleClass }}">
                             <div class="card-header-row">
                                 <span class="sender-badge sender-{{ $message->sender_type }}">{{ $senderLabel }}</span>
@@ -326,7 +245,6 @@
                                 {{ $message->text }}
                             @endif
                         </div>
-                        @endif
                     </div>
                 @empty
                     <div style="text-align:center;padding:40px 0" class="text-muted">
