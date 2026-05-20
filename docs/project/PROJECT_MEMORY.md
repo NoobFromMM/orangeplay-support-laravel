@@ -10,11 +10,13 @@
 - Locked features must stay intact while new work lands.
 - Telegram behavior is the current proof point for the MVP.
 - Raw payload retention matters for debugging and future channel support.
-- Worker provider can be inconsistent (kbzpay vs wavepay for same screenshot), so duplicate matching uses transaction_id first, not provider.
+- Worker provider can be inconsistent (kbzpay vs wavepay for same screenshot), so duplicate matching uses transaction_id first.
 - Manual Telegram evidence must inspect the latest event only; stale data misleads debugging.
 - Always verify php artisan serve/ngrok are running when testing webhooks.
 - Http::fake chaining in Laravel causes cross-command interference; decouple smoke tests from Http::fake where possible.
 - `env()` caches values; use constructor injection for test-friendliness over env-dependent logic.
+- Payment runtime was removed from the bot (R2) because the support bot should only do FAQ + admin reply, not payment OCR/case management.
+- Payment code (services, models, tables, UI) remains on disk but inactive; cleanup plan is documented but not yet executed.
 
 ## Working Rules
 - One task = one feature or one bug.
@@ -22,6 +24,7 @@
 - Keep services small and controllers readable.
 - Preserve Burmese text exactly.
 - No n8n: Laravel remains the single source of truth.
+- Do not reintroduce payment OCR, payment_case creation, or Cloudflare Worker payment_check.
 
 ## Manual-First Rule
 - Smoke tests protect regressions.
