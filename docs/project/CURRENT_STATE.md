@@ -36,6 +36,7 @@ Payment runtime removed from webhook (R2) and all payment code deleted from the 
 - Customer list + per-customer conversation timeline (chronological)
 - Manual Resolve/Reopen controls on the conversation view
 - Small "Bot paused" indicator when human takeover is active
+- Support case MVP: create a case from an inbound customer message or image/file message, and browse cases in `/cases`
 - Image preview with Telegram file proxy
 - FAQ admin CRUD with active/inactive toggle
 - No payment UI, no approve/reject buttons, no payment cards
@@ -47,10 +48,12 @@ Payment runtime removed from webhook (R2) and all payment code deleted from the 
 - Telegram webhook → normalizer → FAQ match → reply or Needs Reply
 - webhook_events raw payload logging before normalization
 - FaqMatcher DB-backed with priority ordering
+- Support case creation from message timeline entries, stored in `support_cases`
 - Inline CSS on Blade views (no Tailwind build required)
 - No payment OCR, no Cloudflare Worker, no payment_case creation
 
 ## Next Recommended Features
 - Dashboard auth before production
+- Case workflow polish and filters
 - Viber channel MVP
 - FAQ import / AI dataset builder

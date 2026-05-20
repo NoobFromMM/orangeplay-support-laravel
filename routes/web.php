@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FaqEntryController;
+use App\Http\Controllers\SupportCaseController;
 use App\Http\Controllers\TelegramFileController;
 use App\Http\Controllers\Webhooks\TelegramWebhookController;
 use Illuminate\Support\Facades\Route;
@@ -13,6 +14,11 @@ Route::get('/customers/{platform}/{platformUserId}', [DashboardController::class
 Route::post('/customers/{platform}/{platformUserId}/reply', [DashboardController::class, 'sendReply']);
 Route::post('/customers/{platform}/{platformUserId}/resolve', [DashboardController::class, 'resolve']);
 Route::post('/customers/{platform}/{platformUserId}/reopen', [DashboardController::class, 'reopen']);
+
+Route::get('/cases', [SupportCaseController::class, 'index'])->name('cases.index');
+Route::get('/cases/{supportCase}', [SupportCaseController::class, 'show'])->name('cases.show');
+Route::get('/messages/{message}/cases/create', [SupportCaseController::class, 'create'])->name('messages.cases.create');
+Route::post('/messages/{message}/cases', [SupportCaseController::class, 'store'])->name('messages.cases.store');
 
 Route::get('/dashboard/faqs', [FaqEntryController::class, 'index']);
 Route::get('/dashboard/faqs/create', [FaqEntryController::class, 'create']);

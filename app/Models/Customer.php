@@ -18,4 +18,9 @@ class Customer extends Model
     {
         return $this->hasMany(Message::class);
     }
+
+    public function supportCases(): HasMany
+    {
+        return $this->hasMany(SupportCase::class);
+    }
 }

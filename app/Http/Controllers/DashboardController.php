@@ -52,6 +52,8 @@ class DashboardController extends Controller
                 ->get()
             : collect();
 
+        $messages->load('supportCases');
+
         return view('dashboard.conversation', compact('customer', 'messages', 'conversation'));
     }
 

@@ -74,6 +74,36 @@
             justify-content: flex-end;
         }
         .conversation-actions form { display: inline-flex; }
+        .nav-links { display:flex; gap:16px; align-items:center; font-size:.9rem; }
+        .nav-links a { color:#2563eb; text-decoration:none; }
+        .nav-links a:hover { text-decoration:underline; }
+        .case-link-row {
+            display: flex;
+            justify-content: flex-start;
+            margin-top: 8px;
+        }
+        .chat-row-outbound .case-link-row {
+            justify-content: flex-end;
+        }
+        .case-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 10px;
+            border-radius: 9999px;
+            border: 1px solid #cbd5e1;
+            background: #fff;
+            color: #1d4ed8;
+            font-size: .72rem;
+            font-weight: 600;
+            text-decoration: none;
+        }
+        .case-link:hover { background: #eff6ff; }
+        .case-link-created {
+            border-color: #bbf7d0;
+            color: #047857;
+            background: #ecfdf5;
+        }
 
         /* Telegram-style chat */
         .chat-timeline {
@@ -187,7 +217,11 @@
     <nav class="nav">
         <div class="nav-inner">
             <a href="/dashboard" class="nav-brand">OrangePlay <span>Support</span></a>
-            <a href="/dashboard" class="nav-back">&larr; Dashboard</a>
+            <div class="nav-links">
+                <a href="/dashboard">Dashboard</a>
+                <a href="/dashboard/faqs">FAQ Manager</a>
+                <a href="/cases">Cases</a>
+            </div>
         </div>
     </nav>
 
@@ -348,6 +382,15 @@
                                     <span class="chat-sender-name">{{ $message->sender_type }}</span>
                                     <span class="chat-time">{{ $message->created_at->timezone('Asia/Yangon')->format('M j, g:ia') }}</span>
                                 </div>
+                                @if ($message->direction === 'inbound' && $message->sender_type === 'customer')
+                                    <div class="case-link-row">
+                                        @if ($message->supportCases->isNotEmpty())
+                                            <a href="/cases/{{ $message->supportCases->first()->id }}" class="case-link case-link-created">View Case</a>
+                                        @else
+                                            <a href="/messages/{{ $message->id }}/cases/create" class="case-link">Create Case</a>
+                                        @endif
+                                    </div>
+                                @endif
                             </div>
                         @endif
                     </div>

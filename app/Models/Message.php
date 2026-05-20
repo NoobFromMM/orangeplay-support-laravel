@@ -19,6 +19,11 @@ class Message extends Model
         return $this->belongsTo(Customer::class);
     }
 
+    public function supportCases(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(SupportCase::class);
+    }
+
     protected function casts(): array
     {
         return [

@@ -72,6 +72,7 @@
             <div class="nav-links" style="display:flex;gap:20px;font-size:.85rem">
                 <a href="/dashboard" style="color:#2563eb">Dashboard</a>
                 <a href="/dashboard/faqs">FAQ Manager</a>
+                <a href="/cases">Cases</a>
             </div>
         </div>
     </nav>

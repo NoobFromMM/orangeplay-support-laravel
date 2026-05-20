@@ -18,6 +18,7 @@ php artisan smoke:telegram-image
 php artisan smoke:image-admin-reply
 php artisan smoke:faq-admin
 php artisan smoke:human-takeover
+php artisan smoke:case-create
 ```
 
 If frontend assets exist:
@@ -224,6 +225,24 @@ Test cases:
 
 ```bash
 php artisan smoke:faq-admin
+```
+
+---
+
+## Case Create Smoke Expected
+
+Smoke tests without real Telegram network calls.
+
+Test cases:
+1. Create a case from an inbound Telegram text message
+2. The case links to the source message and conversation
+3. Source text is preserved
+4. The case appears in `/cases` when queried through app logic
+
+### Run
+
+```bash
+php artisan smoke:case-create
 ```
 
 ---
