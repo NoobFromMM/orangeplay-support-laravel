@@ -53,6 +53,10 @@
         .empty-icon { font-size: 2.5rem; margin-bottom: 12px; opacity: .35; }
         .empty p { font-size: .9rem; max-width: 340px; margin: 0 auto; }
         .empty p + p { margin-top: 8px; font-size: .8rem; }
+        .filter-bar { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; }
+        .filter-btn { padding: 6px 16px; border-radius: 8px; font-size: .8rem; font-weight: 600; cursor: pointer; border: 1px solid #d1d5db; background: #fff; color: #6b7280; text-decoration: none; transition: all .15s; }
+        .filter-btn:hover { background: #f3f4f6; }
+        .filter-btn.active { background: #2563eb; color: #fff; border-color: #2563eb; }
         @media (max-width: 640px) {
             th:nth-child(2), td:nth-child(2) { display: none; }
             th, td { padding: 12px 10px; }
@@ -76,6 +80,12 @@
         <div class="page-header">
             <h1>Customers</h1>
             <span class="count">{{ $customers->count() }} total</span>
+        </div>
+
+        <div class="filter-bar">
+            <a href="/dashboard" class="filter-btn {{ $filter === 'all' ? 'active' : '' }}">All</a>
+            <a href="/dashboard?filter=needs_reply" class="filter-btn {{ $filter === 'needs_reply' ? 'active' : '' }}">Needs Reply</a>
+            <a href="/dashboard?filter=resolved" class="filter-btn {{ $filter === 'resolved' ? 'active' : '' }}">Resolved</a>
         </div>
 
         <div class="card">

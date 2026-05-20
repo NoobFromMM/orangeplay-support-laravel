@@ -12,15 +12,30 @@ use Illuminate\Http\Request;
 
 class DashboardController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $customers = Customer::with(['conversations' => function ($query) {
+        $filter = $request->query('filter', 'all');
+
+        $customers = Customer::with(['conversations' => function ($query) use ($filter) {
             $query->latest('last_message_at');
+            if ($filter === 'needs_reply') {
+                $query->where('status', 'Needs Reply');
+            } elseif ($filter === 'resolved') {
+                $query->where('status', 'resolved');
+            }
         }, 'messages' => function ($query) {
             $query->latest()->limit(1);
-        }])->latest()->get();
+        }]);
 
-        return view('dashboard.index', compact('customers'));
+        if ($filter === 'needs_reply' || $filter === 'resolved') {
+            $customers = $customers->whereHas('conversations', function ($q) use ($filter) {
+                $q->where('status', $filter === 'needs_reply' ? 'Needs Reply' : 'resolved');
+            });
+        }
+
+        $customers = $customers->latest()->get();
+
+        return view('dashboard.index', compact('customers', 'filter'));
     }
 
     public function showConversation(string $platform, string $platformUserId)
