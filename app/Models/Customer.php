@@ -18,9 +18,4 @@ class Customer extends Model
     {
         return $this->hasMany(Message::class);
     }
-
-    public function customerEmails(): HasMany
-    {
-        return $this->hasMany(CustomerEmail::class);
-    }
 }

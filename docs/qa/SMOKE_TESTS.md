@@ -12,6 +12,11 @@ Feature-specific smoke examples:
 ```bash
 php artisan smoke:f1
 php artisan smoke:f2
+php artisan smoke:f3
+php artisan smoke:webhook-events
+php artisan smoke:telegram-image
+php artisan smoke:image-admin-reply
+php artisan smoke:faq-admin
 ```
 
 If frontend assets exist:
@@ -182,55 +187,25 @@ php artisan smoke:image-admin-reply
 
 ---
 
-## Payment Foundation Smoke Expected
+## FAQ Admin Smoke Expected
 
-Tests the payment case infrastructure without real network calls.
+Smoke tests without real Telegram network calls.
 
 Test cases:
-- A: Worker URL missing — returns safe failure (ok=false)
-- B: Worker fake success — normalized result with provider, transaction_id, amount
-- C: PaymentCaseService creates case with provider, transaction_id, status, worker_response, image_message_id
-- D: Missing transaction_id — still creates case with null transaction_id
-- E: is_payment=false — throws InvalidArgumentException
+- A: Create FAQ with keywords, answer, priority
+- B: Update FAQ answer, keywords, priority
+- C: Toggle active/inactive
+- D: Active FAQ matches via FaqMatcher (including Burmese keyword)
+- E: Inactive FAQ does not match
 
 ### Run
 
 ```bash
-php artisan smoke:payment-foundation
+php artisan smoke:faq-admin
 ```
 
 ---
 
-## Payment Screenshot Processing Smoke Expected
+## Payment Smokes — Removed (R3)
 
-Tests the PaymentScreenshotService without real network calls.
-
-Test cases:
-- A: is_payment=true with transaction_id — payment case + review card created, metadata links payment_case_id
-- B: is_payment=true with null transaction_id — still creates case and review card
-- C: is_payment=false — returns null, nothing created
-- D: Non-image message — throws InvalidArgumentException
-
-### Run
-
-```bash
-php artisan smoke:payment-screenshot
-```
-
----
-
-## Payment Webhook Integration Smoke Expected
-
-Tests the full Telegram image webhook to payment check pipeline with Http::fake.
-
-Test cases:
-- A: image + is_payment=true → payment case + review card created, no bot reply
-- B: image + is_payment=false → no case, no review card, status Needs Reply
-- C: payment check HTTP 500 → image preserved, no crash, status Needs Reply
-- D: text hi → F1 greeting still works
-
-### Run
-
-```bash
-php artisan smoke:payment-webhook
-```
+All payment-related smoke commands (`smoke:payment-foundation`, `smoke:payment-screenshot`, `smoke:payment-webhook`, `smoke:payment-email-attach`, `smoke:payment-resolution`, `smoke:payment-duplicate`, `smoke:customer-emails`) have been deleted from the codebase. The respective sections have been removed from this document.

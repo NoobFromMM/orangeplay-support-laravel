@@ -11,8 +11,8 @@
 
 **smoke:locked**: 7 features, all pass.
 
-## Payment Runtime — Deprecated (R2)
-Payment runtime removed from Telegram webhook (`bd072da`). Payment services, models, tables, UI still on disk but inactive. Cleanup plan exists (`docs/project/PAYMENT_CODE_CLEANUP_PLAN_R3.md`) but not implemented.
+## Payment Runtime — Fully Removed (R3)
+Payment runtime removed from webhook (R2) and all payment code deleted from the codebase (R3). No payment services, models, controllers, routes, smoke commands, or UI remain. Legacy payment data in DB tables is inert — rendered as generic system text in the timeline.
 
 ## Current Runtime Behavior
 - FAQ match → bot auto-reply + status=resolved
@@ -28,15 +28,13 @@ Payment runtime removed from Telegram webhook (`bd072da`). Payment services, mod
 - `GET /dashboard/faqs` (CRUD + toggle)
 - `GET /telegram/file/{fileId}` (image proxy)
 - `GET /`
-- ~~`POST /payments/{paymentCase}/approve`~~ (inactive)
-- ~~`POST /payments/{paymentCase}/reject`~~ (inactive)
 
 ## Current Dashboard State
 - Blade-based MVP dashboard with compact styled UI
 - Customer list + per-customer conversation timeline (newest-first)
 - Image preview with Telegram file proxy
 - FAQ admin CRUD with active/inactive toggle
-- Payment review cards with approve/reject buttons (INACTIVE, renders legacy data as generic system cards)
+- No payment UI, no approve/reject buttons, no payment cards
 - No React frontend yet
 - No dashboard auth layer yet
 
@@ -46,10 +44,9 @@ Payment runtime removed from Telegram webhook (`bd072da`). Payment services, mod
 - webhook_events raw payload logging before normalization
 - FaqMatcher DB-backed with priority ordering
 - Inline CSS on Blade views (no Tailwind build required)
-- No payment OCR, no Cloudflare Worker calls, no payment_case creation
+- No payment OCR, no Cloudflare Worker, no payment_case creation
 
 ## Next Recommended Features
-- R3: Payment code cleanup (delete inactive files, replace UI fallback)
 - Dashboard auth before production
 - Viber channel MVP
 - FAQ import / AI dataset builder
