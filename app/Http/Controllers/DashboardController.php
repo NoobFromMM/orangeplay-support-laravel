@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\Conversation;
 use App\Models\Customer;
-use App\Models\Message;
 use App\Services\Support\ConversationService;
 use App\Services\Telegram\TelegramBotService;
 use Illuminate\Http\RedirectResponse;
@@ -44,14 +43,16 @@ class DashboardController extends Controller
             ->where('platform_user_id', $platformUserId)
             ->firstOrFail();
 
-        $messages = Message::where('customer_id', $customer->id)
-            ->orderBy('created_at', 'desc')
-            ->orderBy('id', 'desc')
-            ->get();
-
         $conversation = Conversation::where('customer_id', $customer->id)
             ->latest('last_message_at')
             ->first();
+
+        $messages = $conversation
+            ? $conversation->messages()
+                ->orderBy('created_at', 'asc')
+                ->orderBy('id', 'asc')
+                ->get()
+            : collect();
 
         return view('dashboard.conversation', compact('customer', 'messages', 'conversation'));
     }

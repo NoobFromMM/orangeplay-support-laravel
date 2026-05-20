@@ -60,47 +60,86 @@
         .btn-primary:hover { background: #1d4ed8; }
 
         /* Telegram-style chat */
-        .chat-timeline { padding: 8px 0; }
-        .chat-row { display: flex; margin-bottom: 12px; align-items: flex-start; }
+        .chat-timeline {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding: 14px;
+            background: #edf2f7;
+            border-radius: 14px;
+        }
+        .chat-row { display: flex; align-items: flex-end; }
         .chat-row-inbound { justify-content: flex-start; }
         .chat-row-outbound { justify-content: flex-end; }
+        .chat-row-system { justify-content: center; }
         .chat-bubble {
             max-width: 75%;
-            padding: 8px 12px;
-            border-radius: 14px;
+            width: fit-content;
+            display: inline-flex;
+            flex-direction: column;
+            padding: 10px 12px 9px;
+            border-radius: 18px;
             font-size: .875rem;
             line-height: 1.5;
             white-space: pre-wrap;
             word-break: break-word;
             position: relative;
+            box-shadow: 0 1px 1px rgba(15, 23, 42, .06);
         }
         .chat-bubble-inbound {
             background: #fff;
             border: 1px solid #e5e7eb;
             border-bottom-left-radius: 6px;
+            align-items: flex-start;
         }
         .chat-bubble-outbound {
             border-bottom-right-radius: 6px;
+            color: #0f172a;
+            align-items: flex-end;
         }
-        .chat-bubble-outbound-bot { background: #ede9fe; color: #4c1d95; }
-        .chat-bubble-outbound-admin { background: #d1fae5; color: #065f46; }
+        .chat-bubble-outbound-bot { background: #dbeafe; }
+        .chat-bubble-outbound-admin { background: #bfdbfe; }
         .chat-bubble-outbound-system { background: #f3f4f6; color: #4b5563; }
-        .chat-bubble-meta {
-            display: flex; align-items: center; gap: 6px;
-            margin-bottom: 2px; font-size: .65rem; color: #9ca3af;
+        .chat-system-note {
+            max-width: 82%;
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 3px;
+            padding: 8px 14px;
+            border-radius: 9999px;
+            background: #f3f4f6;
+            color: #4b5563;
+            font-size: .78rem;
+            line-height: 1.45;
+            text-align: center;
         }
-        .chat-row-outbound .chat-bubble-meta { justify-content: flex-end; }
+        .chat-bubble-body {
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .chat-meta-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            margin-top: 6px;
+            font-size: .68rem;
+            color: #64748b;
+        }
+        .chat-row-outbound .chat-meta-row { justify-content: flex-end; }
+        .chat-row-system .chat-time { color: #94a3b8; }
         .chat-sender-dot {
             width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
         }
         .chat-sender-customer { background: #3b82f6; }
-        .chat-sender-bot { background: #8b5cf6; }
-        .chat-sender-admin { background: #10b981; }
+        .chat-sender-bot { background: #2563eb; }
+        .chat-sender-admin { background: #14b8a6; }
         .chat-sender-system { background: #9ca3af; }
         .chat-time { font-size: .68rem; color: #9ca3af; }
         .chat-row-outbound .chat-time { text-align: right; }
 
-        .chat-image { display: block; max-width: 280px; border-radius: 10px; cursor: pointer; transition: opacity .15s; }
+        .chat-image { display: block; max-width: 280px; width: 100%; border-radius: 12px; cursor: pointer; transition: opacity .15s; }
         .chat-image:hover { opacity: .9; }
         .chat-image-wrapper { position: relative; }
         .chat-image-link { position: absolute; bottom: 4px; right: 4px; background: rgba(0,0,0,.5); color: #fff; padding: 2px 6px; border-radius: 4px; font-size: .65rem; text-decoration: none; }
@@ -124,6 +163,7 @@
             .reply-form textarea { min-height: 100px; }
             .card { padding: 16px; }
             .chat-bubble { max-width: 88%; }
+            .chat-system-note { max-width: 92%; }
         }
     </style>
 </head>
@@ -222,7 +262,9 @@
                 @forelse ($messages as $message)
                     @php
                         $isInbound = $message->direction === 'inbound';
+                        $isSystem = $message->sender_type === 'system';
                         $rowClass = $isInbound ? 'chat-row-inbound' : 'chat-row-outbound';
+                        $rowClass = $isSystem ? 'chat-row-system' : $rowClass;
                         $bubbleOutClass = match ($message->sender_type) {
                             'bot' => 'chat-bubble-outbound-bot',
                             'admin' => 'chat-bubble-outbound-admin',
@@ -240,30 +282,40 @@
                         $imageCaption = $message->metadata['caption'] ?? null;
                     @endphp
                     <div class="chat-row {{ $rowClass }}">
-                        <div class="chat-bubble {{ $isInbound ? 'chat-bubble-inbound' : 'chat-bubble-outbound ' . $bubbleOutClass }}">
-                            <div class="chat-bubble-meta">
-                                <span class="chat-sender-dot {{ $senderColor }}"></span>
-                                <span>{{ $message->created_at->timezone('Asia/Yangon')->format('M j, g:ia') }}</span>
+                        @if ($isSystem)
+                            <div class="chat-system-note">
+                                <span>{{ $message->text ?: 'System message' }}</span>
+                                <span class="chat-time">{{ $message->created_at->timezone('Asia/Yangon')->format('M j, g:ia') }}</span>
                             </div>
-                            @if ($isImage)
-                                @if ($telegramFileId)
-                                    <img src="/telegram/file/{{ $telegramFileId }}"
-                                         class="chat-image"
-                                         alt="Image attachment"
-                                         loading="lazy"
-                                         onclick="openLightbox('/telegram/file/{{ $telegramFileId }}')">
-                                @else
-                                    <div style="padding:20px;text-align:center;background:#f3f4f6;border-radius:8px;color:#9ca3af;font-size:.8rem">
-                                        &#128247; Image attachment
-                                    </div>
-                                @endif
-                                @if ($imageCaption)
-                                    <div style="margin-top:6px;font-size:.8rem;color:#6b7280;">{{ $imageCaption }}</div>
-                                @endif
-                            @else
-                                {{ $message->text }}
-                            @endif
-                        </div>
+                        @else
+                            <div class="chat-bubble {{ $isInbound ? 'chat-bubble-inbound' : 'chat-bubble-outbound ' . $bubbleOutClass }}">
+                                <div class="chat-bubble-body">
+                                    @if ($isImage)
+                                        @if ($telegramFileId)
+                                            <img src="/telegram/file/{{ $telegramFileId }}"
+                                                 class="chat-image"
+                                                 alt="Image attachment"
+                                                 loading="lazy"
+                                                 onclick="openLightbox('/telegram/file/{{ $telegramFileId }}')">
+                                        @else
+                                            <div style="padding:20px;text-align:center;background:#f3f4f6;border-radius:8px;color:#9ca3af;font-size:.8rem">
+                                                &#128247; Image attachment
+                                            </div>
+                                        @endif
+                                        @if ($imageCaption)
+                                            <div class="chat-caption">{{ $imageCaption }}</div>
+                                        @endif
+                                    @else
+                                        {{ $message->text }}
+                                    @endif
+                                </div>
+                                <div class="chat-meta-row">
+                                    <span class="chat-sender-dot {{ $senderColor }}"></span>
+                                    <span class="chat-sender-name">{{ $message->sender_type }}</span>
+                                    <span class="chat-time">{{ $message->created_at->timezone('Asia/Yangon')->format('M j, g:ia') }}</span>
+                                </div>
+                            </div>
+                        @endif
                     </div>
                 @empty
                     <div style="text-align:center;padding:40px 0" class="text-muted">
