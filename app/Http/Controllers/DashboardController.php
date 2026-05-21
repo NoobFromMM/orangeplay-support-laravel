@@ -45,6 +45,12 @@ class DashboardController extends Controller
 
         $conversation = $this->findLatestConversation($customer);
 
+        if ($conversation) {
+            $conversation->load(['supportCases' => function ($query) {
+                $query->with('message')->orderBy('created_at', 'desc')->orderBy('id', 'desc');
+            }]);
+        }
+
         $messages = $conversation
             ? $conversation->messages()
                 ->orderBy('created_at', 'asc')
@@ -52,9 +58,15 @@ class DashboardController extends Controller
                 ->get()
             : collect();
 
-        $messages->load('supportCases');
+        $activeCases = collect();
+        $closedCases = collect();
 
-        return view('dashboard.conversation', compact('customer', 'messages', 'conversation'));
+        if ($conversation) {
+            $activeCases = $conversation->supportCases->filter(fn ($case) => $case->isActive())->values();
+            $closedCases = $conversation->supportCases->reject(fn ($case) => $case->isActive())->values();
+        }
+
+        return view('dashboard.conversation', compact('customer', 'messages', 'conversation', 'activeCases', 'closedCases'));
     }
 
     public function sendReply(

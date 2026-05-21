@@ -64,6 +64,16 @@ class SupportCase extends Model
         return $this->belongsTo(Message::class);
     }
 
+    public function displayCode(): string
+    {
+        return sprintf('#%03d', $this->id);
+    }
+
+    public function isActive(): bool
+    {
+        return in_array($this->status, ['open', 'in_progress'], true);
+    }
+
     protected function casts(): array
     {
         return [

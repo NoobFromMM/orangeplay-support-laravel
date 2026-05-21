@@ -18,8 +18,6 @@
         .nav-inner { max-width: 900px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; height: 56px; }
         .nav-brand { font-size: 1rem; font-weight: 700; color: #1a1a2e; text-decoration: none; letter-spacing: -.02em; }
         .nav-brand span { color: #2563eb; }
-        .nav-back { font-size: .85rem; color: #2563eb; text-decoration: none; }
-        .nav-back:hover { text-decoration: underline; }
         .container { max-width: 780px; margin: 0 auto; padding: 24px 16px; }
 
         .card { background: #fff; border-radius: 12px; border: 1px solid #e9ecef; padding: 24px; margin-bottom: 16px; }
@@ -42,6 +40,11 @@
         .status-in_chat { background: #fffbeb; color: #d97706; }
         .status-needs_reply { background: #eff6ff; color: #2563eb; }
         .status-new, .status-open { background: #f9fafb; color: #6b7280; }
+        .status-in_progress { background: #fef3c7; color: #d97706; }
+        .status-rejected { background: #fef2f2; color: #dc2626; }
+        .status-low { background: #f3f4f6; color: #6b7280; }
+        .status-normal { background: #ecfeff; color: #0f766e; }
+        .status-high { background: #fff1f2; color: #be123c; }
         .pause-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 9999px; font-size: .72rem; font-weight: 600; background: #fff7ed; color: #b45309; border: 1px solid #fed7aa; white-space: nowrap; }
 
         .alert { padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; font-size: .85rem; }
@@ -67,43 +70,77 @@
             font-size: .78rem;
         }
         .btn-secondary:hover { background: #eff6ff; }
-        .conversation-actions {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            justify-content: flex-end;
-        }
-        .conversation-actions form { display: inline-flex; }
         .nav-links { display:flex; gap:16px; align-items:center; font-size:.9rem; }
         .nav-links a { color:#2563eb; text-decoration:none; }
         .nav-links a:hover { text-decoration:underline; }
-        .case-link-row {
+        .header-actions {
             display: flex;
-            justify-content: flex-start;
-            margin-top: 8px;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 8px;
+            flex-shrink: 0;
         }
-        .chat-row-outbound .case-link-row {
+        .header-action-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
             justify-content: flex-end;
         }
-        .case-link {
+        .btn-link {
             display: inline-flex;
             align-items: center;
-            gap: 6px;
-            padding: 5px 10px;
-            border-radius: 9999px;
-            border: 1px solid #cbd5e1;
+            justify-content: center;
+            padding: 8px 14px;
+            border-radius: 8px;
+            border: 1px solid #bfdbfe;
             background: #fff;
             color: #1d4ed8;
-            font-size: .72rem;
+            font-size: .78rem;
             font-weight: 600;
             text-decoration: none;
         }
-        .case-link:hover { background: #eff6ff; }
-        .case-link-created {
-            border-color: #bbf7d0;
-            color: #047857;
-            background: #ecfdf5;
+        .btn-link:hover { background: #eff6ff; }
+        .case-section h2 {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
         }
+        .case-subtitle { font-size: .8rem; color: #6b7280; }
+        .case-list { display: flex; flex-direction: column; gap: 10px; }
+        .case-card {
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            background: #f9fafb;
+            padding: 12px 14px;
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+        }
+        .case-card.active { background: #eef6ff; border-color: #bfdbfe; }
+        .case-card.closed { background: #fafafa; opacity: .92; }
+        .case-card-main { min-width: 0; flex: 1; }
+        .case-card-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            font-size: .92rem;
+            font-weight: 700;
+            color: #111827;
+        }
+        .case-code {
+            font-size: .72rem;
+            font-weight: 700;
+            color: #2563eb;
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 9999px;
+            padding: 2px 8px;
+        }
+        .case-card-meta { margin-top: 4px; font-size: .78rem; color: #6b7280; }
+        .case-card-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 
         /* Telegram-style chat */
         .chat-timeline {
@@ -272,7 +309,7 @@
                             default => 'new',
                         };
                     @endphp
-                    <div class="customer-meta-right">
+                    <div class="header-actions">
                         <span class="status-badge status-{{ $statusKey }}">
                             <span class="status-dot status-dot-{{ $statusKey }}"></span>
                             {{ $statusLabel }}
@@ -280,21 +317,22 @@
                         @if ($conversation->isBotPaused())
                             <span class="pause-badge">Bot paused</span>
                         @endif
-                        @if ($conversation)
-                            <div class="conversation-actions">
-                                @if ($status === 'resolved')
-                                    <form method="POST" action="/customers/{{ $customer->platform }}/{{ $customer->platform_user_id }}/reopen">
-                                        @csrf
-                                        <button type="submit" class="btn btn-secondary">Reopen</button>
-                                    </form>
-                                @else
-                                    <form method="POST" action="/customers/{{ $customer->platform }}/{{ $customer->platform_user_id }}/resolve">
-                                        @csrf
-                                        <button type="submit" class="btn btn-secondary">Resolve</button>
-                                    </form>
-                                @endif
-                            </div>
-                        @endif
+                        <div class="header-action-row">
+                            @if ($customer->platform === 'telegram')
+                                <a href="/customers/{{ $customer->platform }}/{{ $customer->platform_user_id }}/cases/create" class="btn-link">Create Case</a>
+                            @endif
+                            @if ($status === 'resolved')
+                                <form method="POST" action="/customers/{{ $customer->platform }}/{{ $customer->platform_user_id }}/reopen">
+                                    @csrf
+                                    <button type="submit" class="btn btn-secondary">Reopen</button>
+                                </form>
+                            @else
+                                <form method="POST" action="/customers/{{ $customer->platform }}/{{ $customer->platform_user_id }}/resolve">
+                                    @csrf
+                                    <button type="submit" class="btn btn-secondary">Resolve</button>
+                                </form>
+                            @endif
+                        </div>
                         @if ($conversation->created_at)
                             <div class="conversation-started">Started {{ $conversation->created_at->diffForHumans() }}</div>
                         @endif
@@ -302,6 +340,57 @@
                 @endif
             </div>
         </div>
+
+        @if ($conversation && ($activeCases->isNotEmpty() || $closedCases->isNotEmpty()))
+            <div class="card case-section">
+                <h2>
+                    <span>Pinned Cases</span>
+                    <span class="case-subtitle">{{ $activeCases->count() }} active{{ $closedCases->isNotEmpty() ? ', ' . $closedCases->count() . ' closed' : '' }}</span>
+                </h2>
+                @if ($activeCases->isNotEmpty())
+                    <div class="case-list">
+                        @foreach ($activeCases as $case)
+                            <div class="case-card active">
+                                <div class="case-card-main">
+                                    <div class="case-card-title">
+                                        <span class="case-code">{{ $case->displayCode() }}</span>
+                                        <span>{{ \App\Models\SupportCase::labelForCategory($case->category) }}</span>
+                                        <span class="status-badge status-{{ $case->status }}">{{ \App\Models\SupportCase::labelForStatus($case->status) }}</span>
+                                        <span class="status-badge status-{{ $case->priority }}">{{ \App\Models\SupportCase::labelForPriority($case->priority) }}</span>
+                                    </div>
+                                    <div class="case-card-meta">{{ $case->title }} · {{ $case->created_at?->timezone('Asia/Yangon')->format('M j, g:ia') }}</div>
+                                </div>
+                                <div class="case-card-actions">
+                                    <a href="/cases/{{ $case->id }}" class="btn-link">Open</a>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
+                @if ($closedCases->isNotEmpty())
+                    <details>
+                        <summary style="cursor:pointer;font-size:.85rem;color:#6b7280">Closed cases</summary>
+                        <div class="case-list" style="margin-top:10px">
+                            @foreach ($closedCases as $case)
+                                <div class="case-card closed">
+                                    <div class="case-card-main">
+                                        <div class="case-card-title">
+                                            <span class="case-code">{{ $case->displayCode() }}</span>
+                                            <span>{{ \App\Models\SupportCase::labelForCategory($case->category) }}</span>
+                                            <span class="status-badge status-{{ $case->status }}">{{ \App\Models\SupportCase::labelForStatus($case->status) }}</span>
+                                        </div>
+                                        <div class="case-card-meta">{{ $case->title }} · {{ $case->created_at?->timezone('Asia/Yangon')->format('M j, g:ia') }}</div>
+                                    </div>
+                                    <div class="case-card-actions">
+                                        <a href="/cases/{{ $case->id }}" class="btn-link">Open</a>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    </details>
+                @endif
+            </div>
+        @endif
 
         {{-- Reply Form --}}
         @if ($customer->platform === 'telegram')
@@ -382,15 +471,6 @@
                                     <span class="chat-sender-name">{{ $message->sender_type }}</span>
                                     <span class="chat-time">{{ $message->created_at->timezone('Asia/Yangon')->format('M j, g:ia') }}</span>
                                 </div>
-                                @if ($message->direction === 'inbound' && $message->sender_type === 'customer')
-                                    <div class="case-link-row">
-                                        @if ($message->supportCases->isNotEmpty())
-                                            <a href="/cases/{{ $message->supportCases->first()->id }}" class="case-link case-link-created">View Case</a>
-                                        @else
-                                            <a href="/messages/{{ $message->id }}/cases/create" class="case-link">Create Case</a>
-                                        @endif
-                                    </div>
-                                @endif
                             </div>
                         @endif
                     </div>

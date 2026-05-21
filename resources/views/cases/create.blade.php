@@ -25,6 +25,23 @@
         .section-title { font-size:.8rem; text-transform:uppercase; letter-spacing:.04em; color:#6b7280; margin-bottom:10px; }
         .source-box { background:#f9fafb; border:1px solid #e5e7eb; border-radius:10px; padding:14px; white-space:pre-wrap; word-break:break-word; }
         .image-preview { max-width: 320px; width:100%; border-radius: 12px; border: 1px solid #e5e7eb; display:block; margin-top:12px; }
+        .source-list { display:flex; flex-direction:column; gap:10px; }
+        .source-item {
+            border:1px solid #e5e7eb;
+            border-radius:12px;
+            background:#fff;
+            padding:12px 14px;
+            display:flex;
+            gap:10px;
+            align-items:flex-start;
+        }
+        .source-item input { margin-top:4px; flex-shrink:0; }
+        .source-item-body { min-width:0; flex:1; }
+        .source-item-title { font-size:.9rem; font-weight:700; color:#111827; }
+        .source-item-meta { font-size:.78rem; color:#6b7280; margin-top:2px; }
+        .source-item-preview { margin-top:8px; padding:10px 12px; background:#f8fafc; border-radius:10px; border:1px solid #e5e7eb; white-space:pre-wrap; word-break:break-word; font-size:.84rem; color:#334155; }
+        .source-item-image { max-width: 120px; width:100%; border-radius: 10px; border:1px solid #e5e7eb; display:block; margin-top:8px; }
+        .source-item-selected { border-color:#bfdbfe; background:#eff6ff; }
         .form-grid { display:grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap:14px; }
         label { display:block; font-size:.8rem; font-weight:600; color:#374151; margin-bottom:6px; }
         input, select, textarea {
@@ -69,26 +86,57 @@
 
         <div class="card">
             <div class="title">Create Support Case</div>
-            <div class="subtitle">Create a case from this inbound customer message.</div>
+            <div class="subtitle">Create a case from the latest or a recent inbound message in this conversation.</div>
         </div>
 
         <div class="card">
             <div class="section-title">Source Message</div>
-            @if ($sourceText)
-                <div class="source-box">{{ $sourceText }}</div>
-            @else
-                <div class="source-box">No text was attached to this message.</div>
-            @endif
-
-            @if ($message->message_type === 'image' && ($message->metadata['telegram_file_id'] ?? null))
-                <img src="/telegram/file/{{ $message->metadata['telegram_file_id'] }}" class="image-preview" alt="Source message preview">
+            <div class="source-box">
+                {{ $selectedMessage ? 'Default selection: latest inbound customer message.' : 'No recent inbound customer messages were found.' }}
+            </div>
+            @if ($selectedMessage && ($sourceText || $selectedMessage->message_type !== 'text'))
+                <div style="margin-top:12px">
+                    <div class="source-item-preview">
+                        <strong>{{ ucfirst($selectedMessage->message_type) }} message</strong>
+                        <div style="margin-top:6px">{{ $sourceText ?: 'Attachment without text' }}</div>
+                    </div>
+                    @if (in_array($selectedMessage->message_type, ['image', 'file'], true) && ($selectedMessage->metadata['telegram_file_id'] ?? null))
+                        <img src="/telegram/file/{{ $selectedMessage->metadata['telegram_file_id'] }}" class="image-preview" alt="Source message preview">
+                    @endif
+                </div>
             @endif
         </div>
 
         <div class="card">
-            <form method="POST" action="{{ route('messages.cases.store', $message) }}">
+            <form method="POST" action="{{ route('customers.cases.store', ['platform' => $customer->platform, 'platformUserId' => $customer->platform_user_id]) }}">
                 @csrf
+                <input type="hidden" name="message_id" value="{{ old('message_id', $selectedMessageId) }}">
                 <input type="hidden" name="status" value="open">
+                <div class="section-title">Recent Inbound Messages</div>
+                <div class="source-list">
+                    @forelse ($sourceMessages as $candidate)
+                        @php
+                            $previewText = $candidate->text ?: ($candidate->metadata['caption'] ?? null);
+                            $isSelected = (string) old('message_id', $selectedMessageId) === (string) $candidate->id;
+                            $hasAttachment = in_array($candidate->message_type, ['image', 'file'], true);
+                        @endphp
+                        <label class="source-item {{ $isSelected ? 'source-item-selected' : '' }}">
+                            <input type="radio" name="message_id" value="{{ $candidate->id }}" @checked($isSelected) required>
+                            <div class="source-item-body">
+                                <div class="source-item-title">{{ ucfirst($candidate->message_type) }} message</div>
+                                <div class="source-item-meta">{{ $candidate->created_at?->timezone('Asia/Yangon')->format('M j, Y g:ia') }}</div>
+                                @if ($previewText)
+                                    <div class="source-item-preview">{{ $previewText }}</div>
+                                @endif
+                                @if ($hasAttachment && ($candidate->metadata['telegram_file_id'] ?? null))
+                                    <img src="/telegram/file/{{ $candidate->metadata['telegram_file_id'] }}" class="source-item-image" alt="Message preview">
+                                @endif
+                            </div>
+                        </label>
+                    @empty
+                        <div class="source-box">No source messages found.</div>
+                    @endforelse
+                </div>
                 <div class="form-grid">
                     <div>
                         <label for="category">Category</label>
@@ -121,10 +169,10 @@
                     </div>
                 </div>
                 <div class="actions">
-                    <a href="/customers/{{ $message->platform }}/{{ $message->customer?->platform_user_id }}" class="btn btn-secondary">Cancel</a>
+                    <a href="/customers/{{ $customer->platform }}/{{ $customer->platform_user_id }}" class="btn btn-secondary">Cancel</a>
                     <button type="submit" class="btn btn-primary">Create Case</button>
                 </div>
-                <div class="help">Source text and metadata are stored automatically from the selected message.</div>
+                <div class="help">Support cases stay separate from conversation status and bot pause.</div>
             </form>
         </div>
     </div>

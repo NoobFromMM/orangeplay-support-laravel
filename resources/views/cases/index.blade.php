@@ -94,7 +94,7 @@
                         @foreach ($cases as $case)
                             <tr onclick="location.href='{{ route('cases.show', $case) }}'">
                                 <td>
-                                    <div class="case-title">{{ $case->title }}</div>
+                                    <div class="case-title">{{ $case->displayCode() }} {{ $case->title }}</div>
                                     <div class="case-meta">{{ \App\Models\SupportCase::labelForCategory($case->category) }}</div>
                                 </td>
                                 <td><span class="badge badge-{{ $case->status }}">{{ \App\Models\SupportCase::labelForStatus($case->status) }}</span></td>

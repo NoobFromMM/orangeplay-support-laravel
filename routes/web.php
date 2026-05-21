@@ -14,9 +14,13 @@ Route::get('/customers/{platform}/{platformUserId}', [DashboardController::class
 Route::post('/customers/{platform}/{platformUserId}/reply', [DashboardController::class, 'sendReply']);
 Route::post('/customers/{platform}/{platformUserId}/resolve', [DashboardController::class, 'resolve']);
 Route::post('/customers/{platform}/{platformUserId}/reopen', [DashboardController::class, 'reopen']);
+Route::get('/customers/{platform}/{platformUserId}/cases/create', [SupportCaseController::class, 'createForConversation'])->name('customers.cases.create');
+Route::post('/customers/{platform}/{platformUserId}/cases', [SupportCaseController::class, 'storeForConversation'])->name('customers.cases.store');
 
 Route::get('/cases', [SupportCaseController::class, 'index'])->name('cases.index');
 Route::get('/cases/{supportCase}', [SupportCaseController::class, 'show'])->name('cases.show');
+Route::post('/cases/{supportCase}/resolve', [SupportCaseController::class, 'resolve'])->name('cases.resolve');
+Route::post('/cases/{supportCase}/reject', [SupportCaseController::class, 'reject'])->name('cases.reject');
 Route::get('/messages/{message}/cases/create', [SupportCaseController::class, 'create'])->name('messages.cases.create');
 Route::post('/messages/{message}/cases', [SupportCaseController::class, 'store'])->name('messages.cases.store');
 

@@ -6,6 +6,7 @@ use App\Models\Conversation;
 use App\Models\Customer;
 use App\Models\Message;
 use App\Models\SupportCase;
+use App\Services\Telegram\TelegramBotService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -13,30 +14,47 @@ class SupportCaseCreationTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_inbound_customer_message_shows_create_case_link(): void
+    public function test_conversation_page_shows_one_create_case_button_in_header(): void
     {
-        [$customer, $message] = $this->seedTextMessage('Need help with movie');
+        [$customer] = $this->seedConversationWithMessages();
 
         $response = $this->get("/customers/telegram/{$customer->platform_user_id}");
 
         $response->assertOk();
-        $response->assertSee('Create Case');
-        $response->assertSee('Need help with movie');
-        $response->assertSee('/messages/' . $message->id . '/cases/create', false);
+        $content = $response->getContent();
+
+        $this->assertSame(1, substr_count($content, 'Create Case'));
+        $this->assertStringNotContainsString('/messages/', $content);
     }
 
-    public function test_admin_can_create_case_from_text_message(): void
+    public function test_create_case_form_lists_recent_inbound_messages_and_defaults_latest(): void
     {
-        [$customer, $message] = $this->seedTextMessage('ဒီကားတင်ပေးပါ');
+        [$customer, $conversation, $textMessage, $imageMessage, $fileMessage] = $this->seedConversationWithMessages();
 
-        $this->get("/messages/{$message->id}/cases/create")->assertOk();
+        $response = $this->get("/customers/telegram/{$customer->platform_user_id}/cases/create");
 
-        $response = $this->post("/messages/{$message->id}/cases", [
+        $response->assertOk();
+        $content = $response->getContent();
+
+        $this->assertStringContainsString('Text message', $content);
+        $this->assertStringContainsString('Image message', $content);
+        $this->assertStringContainsString('File message', $content);
+        $this->assertStringContainsString('ဒီကားတင်ပေးပါ', $content);
+        $this->assertStringContainsString('caption for image', $content);
+        $this->assertStringContainsString('caption for file', $content);
+        $this->assertStringContainsString('value="' . $fileMessage->id . '" checked', $content);
+    }
+
+    public function test_admin_can_create_case_from_conversation_and_keep_chat_state_unchanged(): void
+    {
+        [$customer, $conversation, $textMessage] = $this->seedConversationWithMessages();
+
+        $response = $this->post("/customers/telegram/{$customer->platform_user_id}/cases", [
+            'message_id' => $textMessage->id,
             'category' => 'movie_request',
             'title' => 'Movie request from Telegram',
             'description' => 'Customer requested a title.',
             'priority' => 'high',
-            'admin_note' => 'Handle soon',
             'status' => 'open',
         ]);
 
@@ -45,56 +63,33 @@ class SupportCaseCreationTest extends TestCase
         $case = SupportCase::latest('id')->first();
         $this->assertNotNull($case);
         $this->assertSame($customer->id, $case->customer_id);
-        $this->assertSame($message->id, $case->message_id);
+        $this->assertSame($conversation->id, $case->conversation_id);
+        $this->assertSame($textMessage->id, $case->message_id);
         $this->assertSame('movie_request', $case->category);
         $this->assertSame('open', $case->status);
         $this->assertSame('high', $case->priority);
         $this->assertSame('ဒီကားတင်ပေးပါ', $case->source_text);
         $this->assertSame('telegram', $case->platform);
+        $this->assertSame('Needs Reply', $conversation->fresh()->status);
+        $this->assertFalse((bool) $conversation->fresh()->bot_paused);
 
         $this->get('/cases')->assertOk()->assertSee('Movie request from Telegram');
-        $this->get("/cases/{$case->id}")->assertOk()->assertSee('Open source conversation');
+        $this->get("/customers/telegram/{$customer->platform_user_id}")
+            ->assertOk()
+            ->assertSee('Pinned Cases')
+            ->assertSee('Movie request from Telegram');
     }
 
-    public function test_admin_can_create_case_from_image_message_with_metadata(): void
+    public function test_admin_can_create_case_from_image_or_file_message(): void
     {
-        $customer = Customer::create([
-            'platform' => 'telegram',
-            'platform_user_id' => 'image-case-user',
-            'display_name' => 'Image Case User',
-            'username' => 'imagecase',
-        ]);
+        [$customer, $conversation, $textMessage, $imageMessage] = $this->seedConversationWithMessages();
 
-        $conversation = Conversation::create([
-            'customer_id' => $customer->id,
-            'status' => 'Needs Reply',
-            'last_message_at' => now(),
-        ]);
-
-        $message = Message::create([
-            'conversation_id' => $conversation->id,
-            'customer_id' => $customer->id,
-            'platform' => 'telegram',
-            'direction' => 'inbound',
-            'sender_type' => 'customer',
-            'message_type' => 'image',
-            'text' => null,
-            'raw_payload' => ['message_id' => 22],
-            'metadata' => [
-                'telegram_file_id' => 'file_abc123',
-                'telegram_file_unique_id' => 'unique_abc123',
-                'width' => 1280,
-                'height' => 960,
-                'caption' => 'ဒီပုံထဲကကားရနိုင်မလား',
-            ],
-        ]);
-
-        $response = $this->post("/messages/{$message->id}/cases", [
+        $response = $this->post("/customers/telegram/{$customer->platform_user_id}/cases", [
+            'message_id' => $imageMessage->id,
             'category' => 'movie_request',
             'title' => 'Image based movie request',
             'description' => 'Customer shared a screenshot.',
             'priority' => 'normal',
-            'admin_note' => null,
             'status' => 'open',
         ]);
 
@@ -102,60 +97,148 @@ class SupportCaseCreationTest extends TestCase
 
         $case = SupportCase::latest('id')->first();
         $this->assertNotNull($case);
-        $this->assertSame('ဒီပုံထဲကကားရနိုင်မလား', $case->source_text);
-        $this->assertSame('file_abc123', $case->source_metadata['raw_message_metadata']['telegram_file_id'] ?? null);
-        $this->assertSame('unique_abc123', $case->source_metadata['raw_message_metadata']['telegram_file_unique_id'] ?? null);
+        $this->assertSame($imageMessage->id, $case->message_id);
+        $this->assertSame('caption for image', $case->source_text);
+        $this->assertSame('file_image_abc', $case->source_metadata['raw_message_metadata']['telegram_file_id'] ?? null);
     }
 
-    public function test_invalid_case_fields_are_rejected(): void
+    public function test_invalid_selected_source_message_is_rejected(): void
     {
-        [$customer, $message] = $this->seedTextMessage('Need validation');
+        [$customer, $conversation, $textMessage] = $this->seedConversationWithMessages();
 
-        $response = $this->post("/messages/{$message->id}/cases", [
-            'category' => 'not-a-category',
-            'title' => 'Bad case',
-            'description' => 'Bad case',
-            'priority' => 'urgent',
-            'admin_note' => 'Bad',
-            'status' => 'closed',
+        $otherCustomer = Customer::create([
+            'platform' => 'telegram',
+            'platform_user_id' => 'other-case-user',
+            'display_name' => 'Other Case User',
+            'username' => 'othercase',
         ]);
 
-        $response->assertSessionHasErrors(['category', 'priority', 'status']);
+        $otherConversation = Conversation::create([
+            'customer_id' => $otherCustomer->id,
+            'status' => 'Needs Reply',
+            'bot_paused' => false,
+            'last_message_at' => now(),
+        ]);
+
+        $otherMessage = Message::create([
+            'conversation_id' => $otherConversation->id,
+            'customer_id' => $otherCustomer->id,
+            'platform' => 'telegram',
+            'direction' => 'inbound',
+            'sender_type' => 'customer',
+            'message_type' => 'text',
+            'text' => 'Wrong conversation',
+            'raw_payload' => ['message_id' => 998],
+            'metadata' => null,
+        ]);
+
+        $response = $this->post("/customers/telegram/{$customer->platform_user_id}/cases", [
+            'message_id' => $otherMessage->id,
+            'category' => 'complaint',
+            'title' => 'Bad case',
+            'description' => 'Bad case',
+            'priority' => 'normal',
+            'status' => 'open',
+        ]);
+
+        $response->assertSessionHasErrors(['message_id']);
         $this->assertSame(0, SupportCase::count());
     }
 
-    public function test_case_index_displays_created_case(): void
+    public function test_case_show_does_not_display_raw_source_metadata_json(): void
     {
-        [$customer, $message] = $this->seedTextMessage('Index me');
+        [$customer, $conversation, $textMessage] = $this->seedConversationWithMessages();
 
-        SupportCase::create([
+        $case = SupportCase::create([
             'customer_id' => $customer->id,
-            'conversation_id' => $message->conversation_id,
-            'message_id' => $message->id,
+            'conversation_id' => $conversation->id,
+            'message_id' => $textMessage->id,
             'platform' => 'telegram',
             'platform_user_id' => $customer->platform_user_id,
             'category' => 'complaint',
-            'title' => 'Index Case',
+            'title' => 'Case detail',
             'description' => 'Shown in list',
             'status' => 'open',
             'priority' => 'normal',
-            'source_text' => 'Index me',
-            'source_metadata' => ['message_id' => $message->id],
+            'source_text' => 'Case source text',
+            'source_metadata' => ['message_id' => $textMessage->id, 'raw_message_metadata' => ['telegram_file_id' => 'hidden']],
         ]);
 
-        $response = $this->get('/cases');
+        $response = $this->get("/cases/{$case->id}");
 
         $response->assertOk();
-        $response->assertSee('Index Case');
-        $response->assertSee('Complaint');
+        $response->assertSee('Case source text');
+        $response->assertDontSee('raw_message_metadata');
+        $response->assertDontSee('telegram_file_id');
+    }
+
+    public function test_case_resolve_and_reject_send_customer_updates_without_touching_chat_state(): void
+    {
+        $this->setTelegramToken();
+        $this->fakeTelegram();
+
+        [$customer, $conversation, $textMessage, $imageMessage] = $this->seedConversationWithMessages();
+
+        $resolveCase = SupportCase::create([
+            'customer_id' => $customer->id,
+            'conversation_id' => $conversation->id,
+            'message_id' => $textMessage->id,
+            'platform' => 'telegram',
+            'platform_user_id' => $customer->platform_user_id,
+            'category' => 'movie_request',
+            'title' => 'Resolve case',
+            'description' => 'Resolve me',
+            'status' => 'open',
+            'priority' => 'normal',
+            'source_text' => $textMessage->text,
+            'source_metadata' => ['message_id' => $textMessage->id],
+        ]);
+
+        $rejectCase = SupportCase::create([
+            'customer_id' => $customer->id,
+            'conversation_id' => $conversation->id,
+            'message_id' => $imageMessage->id,
+            'platform' => 'telegram',
+            'platform_user_id' => $customer->platform_user_id,
+            'category' => 'complaint',
+            'title' => 'Reject case',
+            'description' => 'Reject me',
+            'status' => 'open',
+            'priority' => 'normal',
+            'source_text' => $imageMessage->metadata['caption'],
+            'source_metadata' => ['message_id' => $imageMessage->id],
+        ]);
+
+        $this->post("/cases/{$resolveCase->id}/resolve", [
+            'resolution_message' => 'တောင်းထားတဲ့အကြောင်းအရာကို ဆောင်ရွက်ပြီးပါပြီ။ ကျေးဇူးတင်ပါတယ်။',
+        ])->assertRedirect();
+
+        $resolveCase->refresh();
+        $conversation->refresh();
+        $this->assertSame('resolved', $resolveCase->status);
+        $this->assertNotNull($resolveCase->resolved_at);
+        $this->assertSame('Needs Reply', $conversation->status);
+        $this->assertFalse((bool) $conversation->bot_paused);
+        $this->assertSame(1, Message::where('conversation_id', $conversation->id)->where('sender_type', 'admin')->count());
+
+        $this->post("/cases/{$rejectCase->id}/reject", [
+            'rejection_message' => 'တောင်းထားတဲ့အကြောင်းအရာကို လက်ရှိ မရနိုင်သေးပါ။ အဆင်မပြေမှုအတွက် တောင်းပန်ပါတယ်။',
+        ])->assertRedirect();
+
+        $rejectCase->refresh();
+        $conversation->refresh();
+        $this->assertSame('rejected', $rejectCase->status);
+        $this->assertSame('Needs Reply', $conversation->status);
+        $this->assertFalse((bool) $conversation->bot_paused);
+        $this->assertSame(2, Message::where('conversation_id', $conversation->id)->where('sender_type', 'admin')->count());
     }
 
     public function test_conversation_timeline_still_displays_messages(): void
     {
-        [$customer, $message] = $this->seedTextMessage('Timeline still works');
+        [$customer, $conversation, $textMessage] = $this->seedConversationWithMessages();
 
         $botMessage = Message::create([
-            'conversation_id' => $message->conversation_id,
+            'conversation_id' => $conversation->id,
             'customer_id' => $customer->id,
             'platform' => 'telegram',
             'direction' => 'outbound',
@@ -169,14 +252,21 @@ class SupportCaseCreationTest extends TestCase
         $response = $this->get("/customers/telegram/{$customer->platform_user_id}");
 
         $response->assertOk();
-        $response->assertSee('Timeline still works');
+        $response->assertSee('ဒီကားတင်ပေးပါ');
         $response->assertSee('Bot timeline reply');
-        $response->assertSeeInOrder(['Timeline still works', 'Bot timeline reply']);
-        $this->assertSame($message->id, Message::where('conversation_id', $message->conversation_id)->orderBy('created_at')->orderBy('id')->first()->id);
-        $this->assertSame($botMessage->id, Message::where('conversation_id', $message->conversation_id)->orderBy('created_at')->orderBy('id')->skip(1)->first()->id);
+        $response->assertSeeInOrder(['ဒီကားတင်ပေးပါ', 'Bot timeline reply']);
+        $orderedIds = Message::where('conversation_id', $conversation->id)
+            ->orderBy('created_at')
+            ->orderBy('id')
+            ->pluck('id')
+            ->all();
+
+        $this->assertCount(4, $orderedIds);
+        $this->assertSame($textMessage->id, $orderedIds[0]);
+        $this->assertSame($botMessage->id, $orderedIds[3]);
     }
 
-    protected function seedTextMessage(string $text): array
+    protected function seedConversationWithMessages(): array
     {
         $customer = Customer::create([
             'platform' => 'telegram',
@@ -188,21 +278,73 @@ class SupportCaseCreationTest extends TestCase
         $conversation = Conversation::create([
             'customer_id' => $customer->id,
             'status' => 'Needs Reply',
+            'bot_paused' => false,
             'last_message_at' => now(),
         ]);
 
-        $message = Message::create([
+        $textMessage = Message::create([
             'conversation_id' => $conversation->id,
             'customer_id' => $customer->id,
             'platform' => 'telegram',
             'direction' => 'inbound',
             'sender_type' => 'customer',
             'message_type' => 'text',
-            'text' => $text,
+            'text' => 'ဒီကားတင်ပေးပါ',
             'raw_payload' => ['message_id' => random_int(1000, 9999)],
             'metadata' => null,
         ]);
 
-        return [$customer, $message];
+        $imageMessage = Message::create([
+            'conversation_id' => $conversation->id,
+            'customer_id' => $customer->id,
+            'platform' => 'telegram',
+            'direction' => 'inbound',
+            'sender_type' => 'customer',
+            'message_type' => 'image',
+            'text' => null,
+            'raw_payload' => ['message_id' => random_int(1000, 9999)],
+            'metadata' => [
+                'telegram_file_id' => 'file_image_abc',
+                'telegram_file_unique_id' => 'unique_image_abc',
+                'caption' => 'caption for image',
+                'width' => 1280,
+                'height' => 960,
+            ],
+        ]);
+
+        $fileMessage = Message::create([
+            'conversation_id' => $conversation->id,
+            'customer_id' => $customer->id,
+            'platform' => 'telegram',
+            'direction' => 'inbound',
+            'sender_type' => 'customer',
+            'message_type' => 'file',
+            'text' => null,
+            'raw_payload' => ['message_id' => random_int(1000, 9999)],
+            'metadata' => [
+                'telegram_file_id' => 'file_doc_abc',
+                'telegram_file_unique_id' => 'unique_doc_abc',
+                'caption' => 'caption for file',
+            ],
+        ]);
+
+        return [$customer, $conversation, $textMessage, $imageMessage, $fileMessage];
+    }
+
+    protected function setTelegramToken(): void
+    {
+        putenv('TELEGRAM_BOT_TOKEN=test-token');
+        $_ENV['TELEGRAM_BOT_TOKEN'] = 'test-token';
+        $_SERVER['TELEGRAM_BOT_TOKEN'] = 'test-token';
+    }
+
+    protected function fakeTelegram(): void
+    {
+        app()->instance(TelegramBotService::class, new class extends TelegramBotService {
+            public function sendMessage(string $chatId, string $text): bool
+            {
+                return true;
+            }
+        });
     }
 }

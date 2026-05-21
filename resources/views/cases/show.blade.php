@@ -37,12 +37,18 @@
         .field-label { font-size:.75rem; color:#6b7280; text-transform:uppercase; letter-spacing:.03em; margin-bottom:4px; }
         .field-value { font-size:.95rem; color:#111827; word-break:break-word; }
         .source-box { background:#f9fafb; border:1px solid #e5e7eb; border-radius:10px; padding:14px; white-space:pre-wrap; word-break:break-word; }
-        .meta-pre { background:#0f172a; color:#e2e8f0; padding:12px; border-radius:10px; overflow:auto; font-size:.8rem; }
         .image-preview { max-width: 320px; width:100%; border-radius: 12px; border: 1px solid #e5e7eb; display:block; }
+        .case-actions { display:grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap:14px; }
+        .case-action-form { border:1px solid #e5e7eb; border-radius:12px; padding:16px; background:#f9fafb; display:flex; flex-direction:column; gap:10px; }
+        .case-action-form textarea { width:100%; min-height:120px; border:1px solid #d1d5db; border-radius:8px; padding:12px; font:inherit; font-size:.9rem; resize:vertical; background:#fff; }
+        .case-action-form textarea:focus { outline:none; border-color:#2563eb; box-shadow:0 0 0 3px rgba(37,99,235,.12); }
+        .case-action-form .btn { justify-content:center; }
+        .case-action-form .help { font-size:.78rem; color:#6b7280; }
         a { color:#2563eb; text-decoration:none; }
         a:hover { text-decoration:underline; }
         @media (max-width: 720px) {
             .grid { grid-template-columns: 1fr; }
+            .case-actions { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -76,6 +82,7 @@
                     </div>
                 </div>
                 <div class="badges">
+                    <span class="badge">{{ $case->displayCode() }}</span>
                     <span class="badge badge-{{ $case->status }}">{{ \App\Models\SupportCase::labelForStatus($case->status) }}</span>
                     <span class="badge badge-{{ $case->priority }}">{{ \App\Models\SupportCase::labelForPriority($case->priority) }}</span>
                     <span class="badge">{{ \App\Models\SupportCase::labelForCategory($case->category) }}</span>
@@ -124,10 +131,10 @@
                 <div class="source-box">No text source stored for this message.</div>
             @endif
 
-            @if ($case->message?->message_type === 'image' && ($case->source_metadata['raw_message_metadata']['telegram_file_id'] ?? null))
+            @if (in_array($case->message?->message_type, ['image', 'file'], true) && ($case->message?->metadata['telegram_file_id'] ?? null))
                 <div style="margin-top:14px">
                     <img
-                        src="/telegram/file/{{ $case->source_metadata['raw_message_metadata']['telegram_file_id'] }}"
+                        src="/telegram/file/{{ $case->message->metadata['telegram_file_id'] }}"
                         class="image-preview"
                         alt="Case source image preview"
                     >
@@ -135,10 +142,28 @@
             @endif
         </div>
 
-        <div class="card">
-            <div class="section-title">Source Metadata</div>
-            <pre class="meta-pre">{{ json_encode($case->source_metadata, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) }}</pre>
-        </div>
+        @if ($case->isActive())
+            <div class="card">
+                <div class="section-title">Case Actions</div>
+                <div class="case-actions">
+                    <form method="POST" action="{{ route('cases.resolve', $case) }}" class="case-action-form">
+                        @csrf
+                        <div class="section-title" style="margin-bottom:0">Resolve Case</div>
+                        <textarea name="resolution_message" maxlength="4000" required>{{ old('resolution_message', 'တောင်းထားတဲ့အကြောင်းအရာကို ဆောင်ရွက်ပြီးပါပြီ။ ကျေးဇူးတင်ပါတယ်။') }}</textarea>
+                        <div class="help">This message will be sent to the customer and stored in the conversation timeline.</div>
+                        <button type="submit" class="btn btn-primary">Resolve Case</button>
+                    </form>
+
+                    <form method="POST" action="{{ route('cases.reject', $case) }}" class="case-action-form">
+                        @csrf
+                        <div class="section-title" style="margin-bottom:0">Reject / Not Available</div>
+                        <textarea name="rejection_message" maxlength="4000" required>{{ old('rejection_message', 'တောင်းထားတဲ့အကြောင်းအရာကို လက်ရှိ မရနိုင်သေးပါ။ အဆင်မပြေမှုအတွက် တောင်းပန်ပါတယ်။') }}</textarea>
+                        <div class="help">This message will be sent to the customer and stored in the conversation timeline.</div>
+                        <button type="submit" class="btn btn-secondary">Reject Case</button>
+                    </form>
+                </div>
+            </div>
+        @endif
 
         @if ($case->admin_note)
             <div class="card">
