@@ -15,12 +15,12 @@
             background: #f8f9fa; color: #1a1a2e; line-height: 1.6; min-height: 100vh;
         }
         .nav { background: #fff; border-bottom: 1px solid #e9ecef; padding: 0 16px; }
-        .nav-inner { max-width: 1100px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; height: 56px; }
+        .nav-inner { max-width: 1360px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; height: 56px; }
         .nav-brand { font-size: 1rem; font-weight: 700; color: #1a1a2e; text-decoration: none; letter-spacing: -.02em; }
         .nav-brand span { color: #2563eb; }
         .nav-back { font-size: .85rem; color: #2563eb; text-decoration: none; }
         .nav-back:hover { text-decoration: underline; }
-        .container { max-width: 1100px; margin: 0 auto; padding: 24px 16px; }
+        .container { max-width: 1360px; margin: 0 auto; padding: 24px 16px; }
 
         .card { background: #fff; border-radius: 12px; border: 1px solid #e9ecef; padding: 24px; margin-bottom: 16px; }
         .card h2 { font-size: 1rem; font-weight: 600; margin-bottom: 16px; color: #374151; }
