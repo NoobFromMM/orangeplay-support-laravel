@@ -107,4 +107,78 @@ class DashboardConversationTimelineTest extends TestCase
         $response->assertSee('admin');
         $response->assertSee('system');
     }
+
+    public function test_conversation_default_order_is_ascending(): void
+    {
+        $customer = Customer::create([
+            'platform' => 'telegram',
+            'platform_user_id' => 'order-test',
+            'display_name' => 'Order Test',
+        ]);
+
+        $conv = Conversation::create([
+            'customer_id' => $customer->id,
+            'status' => 'in_chat',
+            'last_message_at' => now(),
+        ]);
+
+        Message::create([
+            'conversation_id' => $conv->id, 'customer_id' => $customer->id,
+            'platform' => 'telegram', 'direction' => 'inbound',
+            'sender_type' => 'customer', 'message_type' => 'text',
+            'text' => 'First message',
+            'created_at' => now()->subMinutes(10),
+        ]);
+
+        Message::create([
+            'conversation_id' => $conv->id, 'customer_id' => $customer->id,
+            'platform' => 'telegram', 'direction' => 'outbound',
+            'sender_type' => 'bot', 'message_type' => 'text',
+            'text' => 'Second message',
+            'created_at' => now()->subMinutes(5),
+        ]);
+
+        $response = $this->get("/customers/telegram/{$customer->platform_user_id}");
+        $response->assertOk();
+
+        $ascResponse = $this->get("/customers/telegram/{$customer->platform_user_id}?order=asc");
+        $ascResponse->assertOk();
+    }
+
+    public function test_conversation_order_desc_is_descending(): void
+    {
+        $customer = Customer::create([
+            'platform' => 'telegram',
+            'platform_user_id' => 'order-desc',
+            'display_name' => 'Desc Test',
+        ]);
+
+        $conv = Conversation::create([
+            'customer_id' => $customer->id,
+            'status' => 'in_chat',
+            'last_message_at' => now(),
+        ]);
+
+        Message::create([
+            'conversation_id' => $conv->id, 'customer_id' => $customer->id,
+            'platform' => 'telegram', 'direction' => 'inbound',
+            'sender_type' => 'customer', 'message_type' => 'text',
+            'text' => 'Old message',
+            'created_at' => now()->subMinutes(10),
+        ]);
+
+        Message::create([
+            'conversation_id' => $conv->id, 'customer_id' => $customer->id,
+            'platform' => 'telegram', 'direction' => 'inbound',
+            'sender_type' => 'customer', 'message_type' => 'text',
+            'text' => 'New message',
+            'created_at' => now()->subMinutes(2),
+        ]);
+
+        $response = $this->get("/customers/telegram/{$customer->platform_user_id}?order=desc");
+        $response->assertOk();
+
+        $invalidResponse = $this->get("/customers/telegram/{$customer->platform_user_id}?order=invalid");
+        $invalidResponse->assertOk();
+    }
 }

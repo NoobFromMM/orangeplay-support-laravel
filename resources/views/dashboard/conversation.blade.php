@@ -240,6 +240,9 @@
         .lightbox-download { margin-top: 16px; padding: 8px 20px; border-radius: 8px; background: rgba(255,255,255,.15); color: #fff; text-decoration: none; font-size: .8rem; display: none; }
         .text-muted { color: #6b7280; }
         .divider { color: #d1d5db; margin: 0 6px; }
+        .order-toggle { display: inline-flex; gap: 2px; background: #f3f4f6; border-radius: 8px; padding: 2px; }
+        .order-btn { padding: 4px 10px; border-radius: 6px; font-size: .72rem; font-weight: 600; cursor: pointer; border: none; background: transparent; color: #6b7280; text-decoration: none; }
+        .order-btn.active { background: #fff; color: #2563eb; box-shadow: 0 1px 2px rgba(0,0,0,.06); }
         .conversation-started { font-size: .75rem; color: #9ca3af; margin-top: 12px; }
         @media (max-width: 600px) {
             .customer-header { flex-direction: column; }
@@ -415,7 +418,13 @@
 
         {{-- Timeline --}}
         <div class="card">
-            <h2>Timeline</h2>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+                <h2 style="margin-bottom:0">Timeline</h2>
+                <div class="order-toggle">
+                    <a href="?order=asc" class="order-btn {{ ($order ?? 'asc') === 'asc' ? 'active' : '' }}">Oldest</a>
+                    <a href="?order=desc" class="order-btn {{ ($order ?? 'asc') === 'desc' ? 'active' : '' }}">Newest</a>
+                </div>
+            </div>
             <div class="chat-timeline">
                 @forelse ($messages as $message)
                     @php

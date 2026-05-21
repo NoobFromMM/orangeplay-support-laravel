@@ -37,7 +37,7 @@ class DashboardController extends Controller
         return view('dashboard.index', compact('customers', 'filter'));
     }
 
-    public function showConversation(string $platform, string $platformUserId)
+    public function showConversation(string $platform, string $platformUserId, Request $request)
     {
         $customer = Customer::where('platform', $platform)
             ->where('platform_user_id', $platformUserId)
@@ -51,10 +51,13 @@ class DashboardController extends Controller
             }]);
         }
 
+        $order = $request->query('order');
+        $order = in_array($order, ['asc', 'desc'], true) ? $order : 'asc';
+
         $messages = $conversation
             ? $conversation->messages()
-                ->orderBy('created_at', 'asc')
-                ->orderBy('id', 'asc')
+                ->orderBy('created_at', $order)
+                ->orderBy('id', $order)
                 ->get()
             : collect();
 
@@ -66,7 +69,7 @@ class DashboardController extends Controller
             $closedCases = $conversation->supportCases->reject(fn ($case) => $case->isActive())->values();
         }
 
-        return view('dashboard.conversation', compact('customer', 'messages', 'conversation', 'activeCases', 'closedCases'));
+        return view('dashboard.conversation', compact('customer', 'messages', 'conversation', 'activeCases', 'closedCases', 'order'));
     }
 
     public function sendReply(
