@@ -35,7 +35,7 @@
             gap:10px;
             align-items:flex-start;
         }
-        .source-item input { margin-top:4px; flex-shrink:0; }
+        .source-item input { width: 16px; height: 16px; flex-shrink: 0; margin-top: 4px; accent-color: #2563eb; }
         .source-item-body { min-width:0; flex:1; }
         .source-item-title { font-size:.9rem; font-weight:700; color:#111827; }
         .source-item-meta { font-size:.78rem; color:#6b7280; margin-top:2px; }

@@ -200,6 +200,7 @@
         .chat-bubble-body {
             white-space: pre-wrap;
             word-break: break-word;
+            text-align: left;
         }
         .chat-meta-row {
             display: flex;
