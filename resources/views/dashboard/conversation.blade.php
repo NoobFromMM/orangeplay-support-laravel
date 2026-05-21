@@ -262,12 +262,19 @@
             overflow-wrap: anywhere;
         }
 
-        .chat-message-meta {
-            display: flex;
+        .chat-message-text::after {
+            content: "";
+            display: block;
+            clear: both;
+        }
+
+        .chat-message-meta-inline {
+            float: right;
+            display: inline-flex;
             align-items: center;
-            justify-content: flex-end;
-            gap: 6px;
-            margin-top: 6px;
+            gap: 5px;
+            margin-left: 12px;
+            margin-top: .2rem;
             font-size: .68rem;
             line-height: 1.2;
             color: #64748b;
@@ -520,11 +527,11 @@
                                         @else
                                             {{ $message->text }}
                                         @endif
-                                    </div>
-                                    <div class="chat-message-meta">
-                                        <span class="chat-sender-dot {{ $senderColor }}"></span>
-                                        <span class="chat-sender-name">{{ $message->sender_type }}</span>
-                                        <span class="chat-time">{{ $timelineTimestamp }}</span>
+                                        <span class="chat-message-meta-inline">
+                                            <span class="chat-sender-dot {{ $senderColor }}"></span>
+                                            <span>{{ $message->sender_type }}</span>
+                                            <span class="chat-time">{{ $timelineTimestamp }}</span>
+                                        </span>
                                     </div>
                                 </div>
                             @endif
