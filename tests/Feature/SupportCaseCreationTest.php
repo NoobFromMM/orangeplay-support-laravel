@@ -76,7 +76,7 @@ class SupportCaseCreationTest extends TestCase
         $this->get('/cases')->assertOk()->assertSee('Movie request from Telegram');
         $this->get("/customers/telegram/{$customer->platform_user_id}")
             ->assertOk()
-            ->assertSee('Pinned Cases')
+            ->assertSee('Active Cases')
             ->assertSee('Movie request from Telegram');
     }
 

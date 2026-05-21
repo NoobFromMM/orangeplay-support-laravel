@@ -10,6 +10,7 @@ use App\Services\Support\ConversationService;
 use App\Services\Support\SupportCaseService;
 use App\Services\Telegram\TelegramBotService;
 use Illuminate\Console\Command;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 
@@ -78,6 +79,18 @@ class SmokeCaseCreate extends Command
                 ],
             ]);
 
+            $openMessage = Message::create([
+                'conversation_id' => $conversation->id,
+                'customer_id' => $customer->id,
+                'platform' => 'telegram',
+                'direction' => 'inbound',
+                'sender_type' => 'customer',
+                'message_type' => 'text',
+                'text' => 'Need a live case',
+                'raw_payload' => ['message_id' => 9993],
+                'metadata' => null,
+            ]);
+
             $case = $supportCaseService->createFromConversationSelection($conversation, $message->id, [
                 'category' => 'movie_request',
                 'title' => 'Movie request smoke',
@@ -87,7 +100,16 @@ class SmokeCaseCreate extends Command
                 'admin_note' => 'Smoke note',
             ]);
 
+            $activeCase = $supportCaseService->createFromConversationSelection($conversation, $openMessage->id, [
+                'category' => 'complaint',
+                'title' => 'Active case smoke',
+                'description' => 'Open active case',
+                'priority' => 'high',
+                'status' => 'open',
+            ]);
+
             $this->assertCase($case, $message, $errors);
+            $this->assertActiveCase($activeCase, $openMessage, $errors);
 
             $caseUpdateOk = $supportCaseService->deliverCustomerUpdate(
                 $case,
@@ -124,6 +146,37 @@ class SmokeCaseCreate extends Command
             $this->assertConversationWorkflowUnchanged($conversation, $errors);
             $this->assertCaseUpdateMessages($conversation, $errors);
             $this->assertRejectCase($rejectCase, $imageMessage, $errors);
+
+            $request = Request::create("/customers/telegram/{$customer->platform_user_id}", 'GET');
+            $response = app()->handle($request);
+            $content = $response->getContent();
+            $summaryStart = strpos($content, 'Active Cases');
+            $timelineStart = strpos($content, 'Timeline');
+
+            if ($summaryStart === false || $timelineStart === false) {
+                $errors[] = 'Conversation page did not render Active Cases or Timeline headings';
+            } else {
+                $summary = substr($content, $summaryStart, $timelineStart - $summaryStart);
+                if (! str_contains($summary, 'Active case smoke')) {
+                    $errors[] = 'Active case summary missing open case';
+                } else {
+                    $this->info('  OK  Active Cases summary shows open case');
+                }
+
+                if (str_contains($summary, 'Movie request smoke') || str_contains($summary, 'Complaint smoke')) {
+                    $errors[] = 'Closed cases should not appear in Active Cases summary';
+                } else {
+                    $this->info('  OK  Closed cases hidden from Active Cases summary');
+                }
+            }
+
+            foreach (['Case Created', 'Case Resolved', 'Case Rejected'] as $needle) {
+                if (! str_contains($content, $needle)) {
+                    $errors[] = "Conversation timeline missing {$needle} card";
+                } else {
+                    $this->info("  OK  {$needle} card rendered in conversation timeline");
+                }
+            }
         } catch (\Throwable $e) {
             $errors[] = 'Exception: ' . $e->getMessage();
         }
@@ -226,6 +279,21 @@ class SmokeCaseCreate extends Command
             $errors[] = "Expected rejected case status='rejected', got '{$case->status}'";
         } else {
             $this->info('  OK  Reject case status=rejected');
+        }
+    }
+
+    protected function assertActiveCase(SupportCase $case, Message $message, array &$errors): void
+    {
+        if ($case->message_id !== $message->id) {
+            $errors[] = 'Active case source message linkage failed';
+        } else {
+            $this->info("  OK  Active case linked to message_id={$message->id}");
+        }
+
+        if (! $case->isActive()) {
+            $errors[] = "Expected active case to remain active, got '{$case->status}'";
+        } else {
+            $this->info("  OK  Active case status={$case->status}");
         }
     }
 }

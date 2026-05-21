@@ -104,7 +104,7 @@ class SupportCaseService
         );
 
         $case->status = $status;
-        $case->resolved_at = $status === 'resolved' ? now() : null;
+        $case->resolved_at = in_array($status, ['resolved', 'rejected'], true) ? now() : null;
         $case->save();
 
         return true;

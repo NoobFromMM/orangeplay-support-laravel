@@ -237,8 +237,9 @@ Test cases:
 1. Create a case from the conversation page using an inbound Telegram text message
 2. The case links to the selected source message and conversation
 3. Source text is preserved and the conversation workflow stays unchanged
-4. The case appears in `/cases` and the pinned case card shows on the conversation page
-5. Case resolve/reject sends a Telegram update and saves a timeline message
+4. The case appears in `/cases` and the Active Cases summary shows on the conversation page
+5. Case created/resolved/rejected cards appear in the conversation timeline
+6. Case resolve/reject sends a Telegram update and saves a timeline message
 
 ### Run
 

@@ -141,6 +141,57 @@
         }
         .case-card-meta { margin-top: 4px; font-size: .78rem; color: #6b7280; }
         .case-card-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+        .timeline-case-card {
+            width: min(100%, 560px);
+            margin: 0 auto;
+            border: 1px solid #dbeafe;
+            border-radius: 16px;
+            background: #f8fbff;
+            padding: 12px 14px;
+            box-shadow: 0 1px 1px rgba(15, 23, 42, .05);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .timeline-case-card.case-created { background: #f8fbff; }
+        .timeline-case-card.case-updated { background: #fff7ed; border-color: #fed7aa; }
+        .timeline-case-head {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .timeline-case-event {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 10px;
+            border-radius: 9999px;
+            font-size: .72rem;
+            font-weight: 700;
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
+        .timeline-case-event.case-updated { background: #ffedd5; color: #c2410c; }
+        .timeline-case-title {
+            font-size: .92rem;
+            font-weight: 700;
+            color: #111827;
+            line-height: 1.4;
+            word-break: break-word;
+        }
+        .timeline-case-meta {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            font-size: .78rem;
+            color: #6b7280;
+        }
+        .timeline-case-link {
+            align-self: flex-start;
+            font-size: .8rem;
+            font-weight: 600;
+        }
 
         /* Telegram-style chat */
         .chat-timeline {
@@ -345,54 +396,30 @@
             </div>
         </div>
 
-        @if ($conversation && ($activeCases->isNotEmpty() || $closedCases->isNotEmpty()))
+        @if ($conversation && $activeCases->isNotEmpty())
             <div class="card case-section">
                 <h2>
-                    <span>Pinned Cases</span>
-                    <span class="case-subtitle">{{ $activeCases->count() }} active{{ $closedCases->isNotEmpty() ? ', ' . $closedCases->count() . ' closed' : '' }}</span>
+                    <span>Active Cases</span>
+                    <span class="case-subtitle">{{ $activeCases->count() }} active</span>
                 </h2>
-                @if ($activeCases->isNotEmpty())
-                    <div class="case-list">
-                        @foreach ($activeCases as $case)
-                            <div class="case-card active">
-                                <div class="case-card-main">
-                                    <div class="case-card-title">
-                                        <span class="case-code">{{ $case->displayCode() }}</span>
-                                        <span>{{ \App\Models\SupportCase::labelForCategory($case->category) }}</span>
-                                        <span class="status-badge status-{{ $case->status }}">{{ \App\Models\SupportCase::labelForStatus($case->status) }}</span>
-                                        <span class="status-badge status-{{ $case->priority }}">{{ \App\Models\SupportCase::labelForPriority($case->priority) }}</span>
-                                    </div>
-                                    <div class="case-card-meta">{{ $case->title }} · {{ $case->created_at?->timezone('Asia/Yangon')->format('M j, g:ia') }}</div>
+                <div class="case-list">
+                    @foreach ($activeCases as $case)
+                        <div class="case-card active">
+                            <div class="case-card-main">
+                                <div class="case-card-title">
+                                    <span class="case-code">{{ $case->displayCode() }}</span>
+                                    <span>{{ \App\Models\SupportCase::labelForCategory($case->category) }}</span>
+                                    <span class="status-badge status-{{ $case->status }}">{{ \App\Models\SupportCase::labelForStatus($case->status) }}</span>
+                                    <span class="status-badge status-{{ $case->priority }}">{{ \App\Models\SupportCase::labelForPriority($case->priority) }}</span>
                                 </div>
-                                <div class="case-card-actions">
-                                    <a href="/cases/{{ $case->id }}" class="btn-link">Open</a>
-                                </div>
+                                <div class="case-card-meta">{{ $case->title }} · {{ $case->created_at?->timezone('Asia/Yangon')->format('M j, g:ia') }}</div>
                             </div>
-                        @endforeach
-                    </div>
-                @endif
-                @if ($closedCases->isNotEmpty())
-                    <details>
-                        <summary style="cursor:pointer;font-size:.85rem;color:#6b7280">Closed cases</summary>
-                        <div class="case-list" style="margin-top:10px">
-                            @foreach ($closedCases as $case)
-                                <div class="case-card closed">
-                                    <div class="case-card-main">
-                                        <div class="case-card-title">
-                                            <span class="case-code">{{ $case->displayCode() }}</span>
-                                            <span>{{ \App\Models\SupportCase::labelForCategory($case->category) }}</span>
-                                            <span class="status-badge status-{{ $case->status }}">{{ \App\Models\SupportCase::labelForStatus($case->status) }}</span>
-                                        </div>
-                                        <div class="case-card-meta">{{ $case->title }} · {{ $case->created_at?->timezone('Asia/Yangon')->format('M j, g:ia') }}</div>
-                                    </div>
-                                    <div class="case-card-actions">
-                                        <a href="/cases/{{ $case->id }}" class="btn-link">Open</a>
-                                    </div>
-                                </div>
-                            @endforeach
+                            <div class="case-card-actions">
+                                <a href="/cases/{{ $case->id }}" class="btn-link">View Case</a>
+                            </div>
                         </div>
-                    </details>
-                @endif
+                    @endforeach
+                </div>
             </div>
         @endif
 
@@ -426,64 +453,96 @@
                 </div>
             </div>
             <div class="chat-timeline">
-                @forelse ($messages as $message)
+                @forelse ($timelineItems as $item)
                     @php
-                        $isInbound = $message->direction === 'inbound';
-                        $isSystem = $message->sender_type === 'system';
+                        $itemType = $item['type'];
+                        $timestamp = $item['timestamp'];
+                        $isMessage = $itemType === 'message';
+                        $message = $isMessage ? $item['payload'] : null;
+                        $case = ! $isMessage ? $item['payload'] : null;
+                        $isInbound = $isMessage && $message->direction === 'inbound';
+                        $isSystem = $isMessage && $message->sender_type === 'system';
                         $rowClass = $isInbound ? 'chat-row-inbound' : 'chat-row-outbound';
                         $rowClass = $isSystem ? 'chat-row-system' : $rowClass;
-                        $bubbleOutClass = match ($message->sender_type) {
+                        $bubbleOutClass = $isMessage ? match ($message->sender_type) {
                             'bot' => 'chat-bubble-outbound-bot',
                             'admin' => 'chat-bubble-outbound-admin',
                             'system' => 'chat-bubble-outbound-system',
                             default => '',
-                        };
-                        $senderColor = match ($message->sender_type) {
+                        } : '';
+                        $senderColor = $isMessage ? match ($message->sender_type) {
                             'customer' => 'chat-sender-customer',
                             'bot' => 'chat-sender-bot',
                             'admin' => 'chat-sender-admin',
                             default => 'chat-sender-system',
-                        };
-                        $isImage = $message->message_type === 'image';
-                        $telegramFileId = $message->metadata['telegram_file_id'] ?? null;
-                        $imageCaption = $message->metadata['caption'] ?? null;
+                        } : 'chat-sender-system';
+                        $isImage = $isMessage && $message->message_type === 'image';
+                        $telegramFileId = $isMessage ? ($message->metadata['telegram_file_id'] ?? null) : null;
+                        $imageCaption = $isMessage ? ($message->metadata['caption'] ?? null) : null;
+                        $timelineTimestamp = $timestamp?->timezone('Asia/Yangon')->format('M j, g:ia');
                     @endphp
-                    <div class="chat-row {{ $rowClass }}">
-                        @if ($isSystem)
-                            <div class="chat-system-note">
-                                <span>{{ $message->text ?: 'System message' }}</span>
-                                <span class="chat-time">{{ $message->created_at->timezone('Asia/Yangon')->format('M j, g:ia') }}</span>
-                            </div>
-                        @else
-                            <div class="chat-bubble {{ $isInbound ? 'chat-bubble-inbound' : 'chat-bubble-outbound ' . $bubbleOutClass }}">
-                                <div class="chat-bubble-body">
-                                    @if ($isImage)
-                                        @if ($telegramFileId)
-                                            <img src="/telegram/file/{{ $telegramFileId }}"
-                                                 class="chat-image"
-                                                 alt="Image attachment"
-                                                 loading="lazy"
-                                                 onclick="openLightbox('/telegram/file/{{ $telegramFileId }}')">
+                    @if ($isMessage)
+                        <div class="chat-row {{ $rowClass }}">
+                            @if ($isSystem)
+                                <div class="chat-system-note">
+                                    <span>{{ $message->text ?: 'System message' }}</span>
+                                    <span class="chat-time">{{ $timelineTimestamp }}</span>
+                                </div>
+                            @else
+                                <div class="chat-bubble {{ $isInbound ? 'chat-bubble-inbound' : 'chat-bubble-outbound ' . $bubbleOutClass }}">
+                                    <div class="chat-bubble-body">
+                                        @if ($isImage)
+                                            @if ($telegramFileId)
+                                                <img src="/telegram/file/{{ $telegramFileId }}"
+                                                     class="chat-image"
+                                                     alt="Image attachment"
+                                                     loading="lazy"
+                                                     onclick="openLightbox('/telegram/file/{{ $telegramFileId }}')">
+                                            @else
+                                                <div style="padding:20px;text-align:center;background:#f3f4f6;border-radius:8px;color:#9ca3af;font-size:.8rem">
+                                                    &#128247; Image attachment
+                                                </div>
+                                            @endif
+                                            @if ($imageCaption)
+                                                <div class="chat-caption">{{ $imageCaption }}</div>
+                                            @endif
                                         @else
-                                            <div style="padding:20px;text-align:center;background:#f3f4f6;border-radius:8px;color:#9ca3af;font-size:.8rem">
-                                                &#128247; Image attachment
-                                            </div>
+                                            {{ $message->text }}
                                         @endif
-                                        @if ($imageCaption)
-                                            <div class="chat-caption">{{ $imageCaption }}</div>
-                                        @endif
-                                    @else
-                                        {{ $message->text }}
-                                    @endif
+                                    </div>
+                                    <div class="chat-meta-row">
+                                        <span class="chat-sender-dot {{ $senderColor }}"></span>
+                                        <span class="chat-sender-name">{{ $message->sender_type }}</span>
+                                        <span class="chat-time">{{ $timelineTimestamp }}</span>
+                                    </div>
                                 </div>
-                                <div class="chat-meta-row">
-                                    <span class="chat-sender-dot {{ $senderColor }}"></span>
-                                    <span class="chat-sender-name">{{ $message->sender_type }}</span>
-                                    <span class="chat-time">{{ $message->created_at->timezone('Asia/Yangon')->format('M j, g:ia') }}</span>
+                            @endif
+                        </div>
+                    @else
+                        @php
+                            $eventType = $itemType === 'case_updated' ? 'updated' : 'created';
+                            $eventLabel = $itemType === 'case_updated'
+                                ? ($case->status === 'rejected' ? 'Case Rejected' : 'Case Resolved')
+                                : 'Case Created';
+                            $eventTime = $timestamp?->timezone('Asia/Yangon')->format('M j, g:ia');
+                        @endphp
+                        <div class="chat-row chat-row-system">
+                            <div class="timeline-case-card case-{{ $eventType }}">
+                                <div class="timeline-case-head">
+                                    <span class="case-code">{{ $case->displayCode() }}</span>
+                                    <span class="timeline-case-event case-{{ $eventType }}">{{ $eventLabel }}</span>
+                                    <span class="status-badge status-{{ $case->status }}">{{ \App\Models\SupportCase::labelForStatus($case->status) }}</span>
                                 </div>
+                                <div class="timeline-case-title">{{ $case->title }}</div>
+                                <div class="timeline-case-meta">
+                                    <span>{{ \App\Models\SupportCase::labelForCategory($case->category) }}</span>
+                                    <span class="divider">&middot;</span>
+                                    <span>{{ $eventTime }}</span>
+                                </div>
+                                <a href="/cases/{{ $case->id }}" class="timeline-case-link">View Case</a>
                             </div>
-                        @endif
-                    </div>
+                        </div>
+                    @endif
                 @empty
                     <div style="text-align:center;padding:40px 0" class="text-muted">
                         <div style="font-size:2rem;margin-bottom:8px;opacity:.3">&#128488;</div>

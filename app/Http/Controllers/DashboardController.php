@@ -6,6 +6,7 @@ use App\Models\Conversation;
 use App\Models\Customer;
 use App\Services\Support\ConversationService;
 use App\Services\Telegram\TelegramBotService;
+use Illuminate\Support\Collection;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
@@ -45,31 +46,36 @@ class DashboardController extends Controller
 
         $conversation = $this->findLatestConversation($customer);
 
-        if ($conversation) {
-            $conversation->load(['supportCases' => function ($query) {
-                $query->with('message')->orderBy('created_at', 'desc')->orderBy('id', 'desc');
-            }]);
-        }
-
         $order = $request->query('order');
         $order = in_array($order, ['asc', 'desc'], true) ? $order : 'asc';
 
-        $messages = $conversation
-            ? $conversation->messages()
-                ->orderBy('created_at', $order)
-                ->orderBy('id', $order)
-                ->get()
+        $timelineItems = $conversation
+            ? $this->buildConversationTimelineItems($conversation, $order)
             : collect();
 
         $activeCases = collect();
-        $closedCases = collect();
 
         if ($conversation) {
-            $activeCases = $conversation->supportCases->filter(fn ($case) => $case->isActive())->values();
-            $closedCases = $conversation->supportCases->reject(fn ($case) => $case->isActive())->values();
+            $conversation->load(['supportCases' => function ($query) {
+                $query->orderBy('created_at', 'desc')->orderBy('id', 'desc');
+            }]);
+
+            $activeCases = $conversation->supportCases
+                ->filter(fn ($case) => $case->isActive())
+                ->sort(function ($left, $right): int {
+                    $leftTimestamp = $left->created_at?->getTimestamp() ?? 0;
+                    $rightTimestamp = $right->created_at?->getTimestamp() ?? 0;
+
+                    if ($leftTimestamp !== $rightTimestamp) {
+                        return $rightTimestamp <=> $leftTimestamp;
+                    }
+
+                    return $right->id <=> $left->id;
+                })
+                ->values();
         }
 
-        return view('dashboard.conversation', compact('customer', 'messages', 'conversation', 'activeCases', 'closedCases', 'order'));
+        return view('dashboard.conversation', compact('customer', 'timelineItems', 'conversation', 'activeCases', 'order'));
     }
 
     public function sendReply(
@@ -162,5 +168,77 @@ class DashboardController extends Controller
         }
 
         return $this->findLatestConversation($customer);
+    }
+
+    protected function buildConversationTimelineItems(Conversation $conversation, string $order): Collection
+    {
+        $messages = $conversation->messages()
+            ->get();
+
+        $supportCases = $conversation->supportCases()
+            ->get();
+
+        $items = collect();
+
+        foreach ($messages as $message) {
+            $items->push([
+                'type' => 'message',
+                'timestamp' => $message->created_at,
+                'id' => $message->id,
+                'payload' => $message,
+                'sort_type' => $this->timelineTypePriority('message'),
+            ]);
+        }
+
+        foreach ($supportCases as $case) {
+            $items->push([
+                'type' => 'case_created',
+                'timestamp' => $case->created_at,
+                'id' => $case->id,
+                'payload' => $case,
+                'sort_type' => $this->timelineTypePriority('case_created'),
+            ]);
+
+            if (in_array($case->status, ['resolved', 'rejected'], true) && $case->resolved_at) {
+                $items->push([
+                    'type' => 'case_updated',
+                    'timestamp' => $case->resolved_at,
+                    'id' => $case->id,
+                    'payload' => $case,
+                    'sort_type' => $this->timelineTypePriority('case_updated'),
+                ]);
+            }
+        }
+
+        return $items->sort(function (array $left, array $right) use ($order): int {
+            $leftTimestamp = $left['timestamp']?->getTimestamp() ?? 0;
+            $rightTimestamp = $right['timestamp']?->getTimestamp() ?? 0;
+
+            if ($leftTimestamp !== $rightTimestamp) {
+                return $order === 'desc'
+                    ? $rightTimestamp <=> $leftTimestamp
+                    : $leftTimestamp <=> $rightTimestamp;
+            }
+
+            if ($left['sort_type'] !== $right['sort_type']) {
+                return $order === 'desc'
+                    ? $right['sort_type'] <=> $left['sort_type']
+                    : $left['sort_type'] <=> $right['sort_type'];
+            }
+
+            return $order === 'desc'
+                ? $right['id'] <=> $left['id']
+                : $left['id'] <=> $right['id'];
+        })->values();
+    }
+
+    protected function timelineTypePriority(string $type): int
+    {
+        return match ($type) {
+            'message' => 0,
+            'case_created' => 1,
+            'case_updated' => 2,
+            default => 99,
+        };
     }
 }
