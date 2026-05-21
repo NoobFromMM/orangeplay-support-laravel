@@ -202,38 +202,44 @@
             background: #edf2f7;
             border-radius: 14px;
         }
+
         .chat-row { display: flex; align-items: flex-end; }
         .chat-row-inbound { justify-content: flex-start; }
         .chat-row-outbound { justify-content: flex-end; }
         .chat-row-system { justify-content: center; }
+
         .chat-bubble {
-            max-width: 75%;
+            display: block;
             width: fit-content;
-            display: inline-flex;
-            flex-direction: column;
+            min-width: 0;
+            max-width: min(75%, 560px);
             padding: 10px 12px 9px;
             border-radius: 18px;
             font-size: .875rem;
             line-height: 1.5;
-            white-space: pre-wrap;
-            word-break: break-word;
+            text-align: left;
+            white-space: normal;
+            word-break: normal;
+            overflow-wrap: anywhere;
             position: relative;
             box-shadow: 0 1px 1px rgba(15, 23, 42, .06);
         }
+
         .chat-bubble-inbound {
             background: #fff;
             border: 1px solid #e5e7eb;
             border-bottom-left-radius: 6px;
-            align-items: flex-start;
         }
+
         .chat-bubble-outbound {
             border-bottom-right-radius: 6px;
             color: #0f172a;
-            align-items: flex-end;
         }
+
         .chat-bubble-outbound-bot { background: #dbeafe; }
         .chat-bubble-outbound-admin { background: #bfdbfe; }
         .chat-bubble-outbound-system { background: #f3f4f6; color: #4b5563; }
+
         .chat-system-note {
             max-width: 82%;
             display: inline-flex;
@@ -248,31 +254,36 @@
             line-height: 1.45;
             text-align: center;
         }
-        .chat-bubble-body {
-            white-space: pre-wrap;
-            word-break: break-word;
+
+        .chat-message-text {
             text-align: left;
+            white-space: pre-wrap;
+            word-break: normal;
+            overflow-wrap: anywhere;
         }
-        .chat-meta-row {
+
+        .chat-message-meta {
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            gap: 8px;
+            justify-content: flex-end;
+            gap: 6px;
             margin-top: 6px;
             font-size: .68rem;
+            line-height: 1.2;
             color: #64748b;
+            white-space: nowrap;
         }
-        .chat-row-outbound .chat-meta-row { justify-content: flex-end; }
-        .chat-row-system .chat-time { color: #94a3b8; }
+
         .chat-sender-dot {
             width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
         }
+
         .chat-sender-customer { background: #3b82f6; }
         .chat-sender-bot { background: #2563eb; }
         .chat-sender-admin { background: #14b8a6; }
         .chat-sender-system { background: #9ca3af; }
+
         .chat-time { font-size: .68rem; color: #9ca3af; }
-        .chat-row-outbound .chat-time { text-align: right; }
 
         .chat-image { display: block; max-width: 280px; width: 100%; border-radius: 12px; cursor: pointer; transition: opacity .15s; }
         .chat-image:hover { opacity: .9; }
@@ -490,7 +501,7 @@
                                 </div>
                             @else
                                 <div class="chat-bubble {{ $isInbound ? 'chat-bubble-inbound' : 'chat-bubble-outbound ' . $bubbleOutClass }}">
-                                    <div class="chat-bubble-body">
+                                    <div class="chat-message-text">
                                         @if ($isImage)
                                             @if ($telegramFileId)
                                                 <img src="/telegram/file/{{ $telegramFileId }}"
@@ -510,7 +521,7 @@
                                             {{ $message->text }}
                                         @endif
                                     </div>
-                                    <div class="chat-meta-row">
+                                    <div class="chat-message-meta">
                                         <span class="chat-sender-dot {{ $senderColor }}"></span>
                                         <span class="chat-sender-name">{{ $message->sender_type }}</span>
                                         <span class="chat-time">{{ $timelineTimestamp }}</span>
