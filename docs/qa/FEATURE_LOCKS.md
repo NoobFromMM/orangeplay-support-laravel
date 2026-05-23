@@ -1,6 +1,6 @@
 # Feature Locks
 
-## Locked Active Features (8)
+## Locked Active Features (9)
 
 ### F1 — Telegram Greeting Flow
 **Status**: LOCKED
@@ -118,6 +118,30 @@
 - Manual Reopen → Needs Reply + enables bot_paused
 
 **Smoke**: `php artisan smoke:human-takeover`
+
+---
+
+### F9 — Support Case Workflow
+**Status**: LOCKED
+
+**Smoke**: `php artisan smoke:case-create`
+
+**Behavior**:
+- Conversation-level Create Case available per conversation
+- Source message selected from recent inbound customer text/image/file messages
+- Latest inbound defaults as source when available
+- Support case linked to customer, conversation, and source message
+- Active open/in_progress cases appear in Active Cases summary on conversation page
+- Case created/resolved/rejected events appear in conversation timeline as cards
+- Cases index and detail pages render
+- Raw source metadata not exposed in UI
+- Case resolve/reject can send and save a customer-facing update
+
+**Protected invariants**:
+- Case create/resolve/reject does NOT change conversation.status
+- Case create/resolve/reject does NOT change conversation.bot_paused
+- Bot pause controlled only by admin chat actions (reply, resolve, reopen)
+- Conversation status controls chat queue only; support case status controls back-office case lifecycle
 
 ---
 

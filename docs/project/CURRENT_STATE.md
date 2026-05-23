@@ -1,6 +1,6 @@
 # Current State
 
-## Active Locked Features (8)
+## Active Locked Features (9)
 - F1 — Telegram Greeting Flow
 - F2 — DB FAQ Auto Reply
 - F3 — Admin Reply from Dashboard to Telegram
@@ -9,8 +9,9 @@
 - F5A — Image + Admin Reply Regression Flow
 - F7 — FAQ Admin Data Input Management
 - F8 — Human Takeover Bot Pause
+- F9 — Support Case Workflow
 
-**smoke:locked**: 8 features, all pass.
+**smoke:locked**: 9 features, all pass.
 
 ## Payment Runtime — Fully Removed (R3)
 Payment runtime removed from webhook (R2) and all payment code deleted from the codebase (R3). No payment services, models, controllers, routes, smoke commands, or UI remain. Legacy payment data in DB tables is inert — rendered as generic system text in the timeline.

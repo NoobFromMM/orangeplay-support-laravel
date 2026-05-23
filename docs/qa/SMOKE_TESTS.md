@@ -72,7 +72,7 @@ ALL ASSERTIONS PASSED
 php artisan smoke:locked
 ```
 
-Runs all locked feature smoke tests. Currently runs `smoke:f1`, `smoke:f2`, `smoke:f3`, `smoke:webhook-events`, `smoke:telegram-image`, `smoke:image-admin-reply`, `smoke:faq-admin`, and `smoke:human-takeover`.
+Runs all locked feature smoke tests. Currently runs `smoke:f1`, `smoke:f2`, `smoke:f3`, `smoke:webhook-events`, `smoke:telegram-image`, `smoke:image-admin-reply`, `smoke:faq-admin`, `smoke:human-takeover`, and `smoke:case-create`.
 
 ---
 
