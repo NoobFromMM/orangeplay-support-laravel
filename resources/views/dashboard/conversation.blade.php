@@ -259,6 +259,11 @@
 
         .chat-message-text {
             text-align: left;
+            word-break: normal;
+            overflow-wrap: anywhere;
+        }
+
+        .chat-message-copy {
             white-space: pre-wrap;
             word-break: normal;
             overflow-wrap: anywhere;
@@ -524,10 +529,10 @@
                                                 </div>
                                             @endif
                                             @if ($imageCaption)
-                                                <div class="chat-caption">{{ $imageCaption }}</div>
+                                                <div class="chat-message-copy chat-caption">{{ $imageCaption }}</div>
                                             @endif
                                         @else
-                                            {{ $message->text }}
+                                            <span class="chat-message-copy">{{ $message->text }}</span>
                                         @endif
                                         <span class="chat-message-meta-inline">
                                             <span class="chat-sender-dot {{ $senderColor }}"></span>
