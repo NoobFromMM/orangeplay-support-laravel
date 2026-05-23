@@ -64,6 +64,8 @@ class SupportCaseController extends Controller
         string $platform,
         string $platformUserId,
         SupportCaseService $supportCaseService,
+        ConversationService $conversationService,
+        TelegramBotService $botService,
     ): RedirectResponse {
         $customer = $this->findCustomerOrFail($platform, $platformUserId);
         $conversation = $this->findLatestConversationForCustomer($customer);
@@ -76,6 +78,7 @@ class SupportCaseController extends Controller
             'description' => ['nullable', 'string', 'max:5000'],
             'priority' => ['required', Rule::in(SupportCase::priorityOptions())],
             'status' => ['required', Rule::in(SupportCase::statusOptions())],
+            'notification' => ['nullable', 'string', 'max:4000'],
         ]);
 
         if (! $this->findSelectableSourceMessage($conversation, (int) $validated['message_id'])) {
@@ -83,6 +86,33 @@ class SupportCaseController extends Controller
         }
 
         $case = $supportCaseService->createFromConversationSelection($conversation, (int) $validated['message_id'], $validated);
+
+        // Send customer notification if provided
+        $notification = $validated['notification'] ?? null;
+        if (! empty(trim((string) $notification))) {
+            $messageText = trim((string) $notification);
+            $displayCode = $case->displayCode();
+
+            if (str_contains($messageText, '{case_id}')) {
+                $messageText = str_replace('{case_id}', $displayCode, $messageText);
+            } else {
+                $messageText .= "\n\nCase ID: {$displayCode}";
+            }
+
+            $chatId = $conversation->customer->platform_user_id;
+
+            if ($customer->platform === 'telegram') {
+                $botService->sendMessage($chatId, $messageText);
+            }
+
+            $conversationService->saveAdminOutboundMessage(
+                $conversation,
+                $customer->platform,
+                $messageText,
+                'text',
+                ['source' => 'dashboard', 'event' => 'case_created_notification', 'case_id' => $case->id],
+            );
+        }
 
         return redirect()
             ->route('cases.show', $case)

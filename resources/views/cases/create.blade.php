@@ -167,6 +167,13 @@
                         <label for="admin_note">Admin Note</label>
                         <textarea id="admin_note" name="admin_note" maxlength="5000" placeholder="Internal note for support team...">{{ old('admin_note') }}</textarea>
                     </div>
+                    <div class="full">
+                        <label for="notification">Customer Notification <span style="font-weight:400;color:#9ca3af">(optional)</span></label>
+                        <textarea id="notification" name="notification" maxlength="4000" rows="3"
+                            placeholder="Notification sent to customer via Telegram after case creation...">{{ old('notification', 'တောင်းဆိုမှုအတွက် သက်ဆိုင်ရာ admin team ကို ပြောပေးထားပါတယ်။
+Case ID: {case_id}') }}</textarea>
+                        <div style="font-size:.72rem;color:#9ca3af;margin-top:4px">Use <code>{case_id}</code> as placeholder for the auto-generated case ID. Notification is sent only if text is provided.</div>
+                    </div>
                 </div>
                 <div class="actions">
                     <a href="/customers/{{ $customer->platform }}/{{ $customer->platform_user_id }}" class="btn btn-secondary">Cancel</a>

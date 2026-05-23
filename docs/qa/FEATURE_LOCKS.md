@@ -136,6 +136,7 @@
 - Cases index and detail pages render
 - Raw source metadata not exposed in UI
 - Case resolve/reject can send and save a customer-facing update
+- Case creation can optionally notify customer via editable message with auto-filled Case ID ({case_id} placeholder)
 
 **Protected invariants**:
 - Case create/resolve/reject does NOT change conversation.status

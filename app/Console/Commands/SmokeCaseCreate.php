@@ -103,6 +103,32 @@ class SmokeCaseCreate extends Command
             $this->assertCase($case, $message, $errors);
             $this->assertActiveCase($activeCase, $openMessage, $errors);
 
+            // Create a case with notification
+            $notifyCase = $supportCaseService->createFromConversationSelection($conversation, $message->id, [
+                'category' => 'movie_request',
+                'title' => 'Notify test',
+                'description' => 'Notification smoke',
+                'priority' => 'normal',
+                'status' => 'open',
+            ]);
+
+            $displayCode = $notifyCase->displayCode();
+            $notifyText = "Your request has been received. Case ID: {$displayCode}";
+
+            Message::create([
+                'conversation_id' => $conversation->id, 'customer_id' => $customer->id,
+                'platform' => 'telegram', 'direction' => 'outbound', 'sender_type' => 'admin',
+                'message_type' => 'text',
+                'text' => $notifyText,
+                'metadata' => ['source' => 'dashboard', 'event' => 'case_created_notification', 'case_id' => $notifyCase->id],
+            ]);
+
+            if (str_contains($notifyText, $displayCode)) {
+                $this->info("  OK  Notification includes case display code {$displayCode}");
+            } else {
+                $errors[] = "Notification missing case display code";
+            }
+
             // Resolve the original case, reject the active case
             $case->update(['status' => 'resolved', 'resolved_at' => now()]);
 

@@ -347,4 +347,87 @@ class SupportCaseCreationTest extends TestCase
             }
         });
     }
+
+    public function test_create_case_with_notification_replaces_case_id_and_saves_message(): void
+    {
+        [$customer, $conversation, $textMessage] = $this->seedConversationWithMessages();
+
+        $this->setTelegramToken();
+        $this->fakeTelegram();
+
+        $originalStatus = $conversation->fresh()->status;
+        $originalBotPaused = $conversation->fresh()->bot_paused;
+
+        $notification = 'Case {case_id} created. We will get back to you.';
+
+        $this->post(
+            "/customers/{$customer->platform}/{$customer->platform_user_id}/cases",
+            [
+                'message_id' => $textMessage->id,
+                'category' => 'movie_request',
+                'title' => 'Notification test',
+                'priority' => 'normal',
+                'status' => 'open',
+                'notification' => $notification,
+            ]
+        )->assertRedirect();
+
+        $case = SupportCase::latest()->first();
+        $code = $case->displayCode();
+
+        // Notification message saved in timeline
+        $this->assertDatabaseHas('messages', [
+            'conversation_id' => $conversation->id,
+            'direction' => 'outbound',
+            'sender_type' => 'admin',
+        ]);
+
+        $notifyMsg = Message::where('conversation_id', $conversation->id)
+            ->where('direction', 'outbound')
+            ->where('sender_type', 'admin')
+            ->latest()
+            ->first();
+
+        $this->assertStringContainsString($code, $notifyMsg->text);
+        $this->assertStringNotContainsString('{case_id}', $notifyMsg->text);
+        $this->assertEquals('dashboard', $notifyMsg->metadata['source'] ?? null);
+        $this->assertEquals('case_created_notification', $notifyMsg->metadata['event'] ?? null);
+
+        // Conversation state unchanged
+        $this->assertEquals($originalStatus, $conversation->fresh()->status);
+        $this->assertEquals($originalBotPaused, $conversation->fresh()->bot_paused);
+    }
+
+    public function test_create_case_without_notification_does_not_send(): void
+    {
+        [$customer, $conversation, $textMessage] = $this->seedConversationWithMessages();
+
+        $this->setTelegramToken();
+        $this->fakeTelegram();
+
+        $adminMsgCountBefore = Message::where('conversation_id', $conversation->id)
+            ->where('direction', 'outbound')
+            ->where('sender_type', 'admin')
+            ->count();
+
+        $this->post(
+            "/customers/{$customer->platform}/{$customer->platform_user_id}/cases",
+            [
+                'message_id' => $textMessage->id,
+                'category' => 'movie_request',
+                'title' => 'No notification',
+                'priority' => 'normal',
+                'status' => 'open',
+                'notification' => '',
+            ]
+        )->assertRedirect();
+
+        $adminMsgCountAfter = Message::where('conversation_id', $conversation->id)
+            ->where('direction', 'outbound')
+            ->where('sender_type', 'admin')
+            ->count();
+
+        $this->assertEquals($adminMsgCountBefore, $adminMsgCountAfter,
+            'No admin outbound message should be created when notification is blank');
+    }
 }
