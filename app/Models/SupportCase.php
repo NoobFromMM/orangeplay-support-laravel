@@ -71,7 +71,7 @@ class SupportCase extends Model
 
     public function isActive(): bool
     {
-        return in_array($this->status, ['open', 'in_progress'], true);
+        return in_array($this->status, ['open'], true);
     }
 
     protected function casts(): array

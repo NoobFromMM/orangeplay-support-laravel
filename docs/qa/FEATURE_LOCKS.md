@@ -131,7 +131,7 @@
 - Source message selected from recent inbound customer text/image/file messages
 - Latest inbound defaults as source when available
 - Support case linked to customer, conversation, and source message
-- Active open/in_progress cases appear in Active Cases summary on conversation page
+- Active case statuses: open (resolved/rejected excluded from active)
 - Case created/resolved/rejected events appear in conversation timeline as cards
 - Cases index and detail pages render
 - Raw source metadata not exposed in UI

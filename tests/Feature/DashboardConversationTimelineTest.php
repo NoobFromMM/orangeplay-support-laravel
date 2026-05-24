@@ -51,7 +51,7 @@ class DashboardConversationTimelineTest extends TestCase
         $this->assertSame([$first->id, $image->id, $bot->id, $admin->id, $system->id], $orderedIds);
     }
 
-    public function test_active_cases_summary_shows_only_open_and_in_progress_cases(): void
+    public function test_active_cases_summary_shows_only_open_cases(): void
     {
         $customer = $this->createCustomer('active-cases-user', 'Active Cases User');
         $conversation = $this->createConversation($customer, 'Needs Reply');
@@ -109,7 +109,7 @@ class DashboardConversationTimelineTest extends TestCase
         $summary = substr($content, $summaryStart, $timelineStart - $summaryStart);
 
         $this->assertStringContainsString('Open case', $summary);
-        $this->assertStringContainsString('In progress case', $summary);
+        $this->assertStringNotContainsString('In progress case', $summary);
         $this->assertStringNotContainsString('Resolved case', $summary);
         $this->assertStringNotContainsString('Rejected case', $summary);
         $this->assertStringContainsString('View Case', $content);
