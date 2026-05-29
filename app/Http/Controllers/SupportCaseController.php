@@ -17,13 +17,54 @@ use Illuminate\Support\Str;
 
 class SupportCaseController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
-        $cases = SupportCase::with(['customer', 'conversation', 'message'])
-            ->latest('created_at')
-            ->get();
+        $status = in_array($request->query('status'), ['open', 'resolved', 'rejected'], true)
+            ? $request->query('status') : 'all';
+        $category = in_array($request->query('category'), SupportCase::categoryOptions(), true)
+            ? $request->query('category') : 'all';
+        $priority = in_array($request->query('priority'), SupportCase::priorityOptions(), true)
+            ? $request->query('priority') : 'all';
+        $order = $request->query('order') === 'oldest' ? 'oldest' : 'newest';
+        $q = $request->query('q', '');
 
-        return view('cases.index', compact('cases'));
+        $query = SupportCase::with(['customer', 'conversation', 'message']);
+
+        if ($status !== 'all') {
+            $query->where('status', $status);
+        }
+        if ($category !== 'all') {
+            $query->where('category', $category);
+        }
+        if ($priority !== 'all') {
+            $query->where('priority', $priority);
+        }
+
+        if (! empty(trim($q))) {
+            $searchTerm = trim($q);
+            $query->where(function ($q) use ($searchTerm) {
+                $q->where('title', 'like', "%{$searchTerm}%")
+                    ->orWhereHas('customer', function ($cq) use ($searchTerm) {
+                        $cq->where('display_name', 'like', "%{$searchTerm}%")
+                            ->orWhere('username', 'like', "%{$searchTerm}%")
+                            ->orWhere('platform_user_id', 'like', "%{$searchTerm}%");
+                    });
+            });
+        }
+
+        $direction = $order === 'oldest' ? 'asc' : 'desc';
+        $query->orderBy('created_at', $direction)->orderBy('id', $direction);
+
+        $cases = $query->get();
+
+        $counts = [
+            'all' => SupportCase::count(),
+            'open' => SupportCase::where('status', 'open')->count(),
+            'resolved' => SupportCase::where('status', 'resolved')->count(),
+            'rejected' => SupportCase::where('status', 'rejected')->count(),
+        ];
+
+        return view('cases.index', compact('cases', 'status', 'category', 'priority', 'order', 'q', 'counts'));
     }
 
     public function show(SupportCase $supportCase): View

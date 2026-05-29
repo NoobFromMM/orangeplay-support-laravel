@@ -430,4 +430,49 @@ class SupportCaseCreationTest extends TestCase
         $this->assertEquals($adminMsgCountBefore, $adminMsgCountAfter,
             'No admin outbound message should be created when notification is blank');
     }
+
+    public function test_cases_index_renders_with_filters(): void
+    {
+        [$customer, $conversation, $textMessage] = $this->seedConversationWithMessages();
+
+        SupportCase::create([
+            'customer_id' => $customer->id,
+            'conversation_id' => $conversation->id,
+            'message_id' => $textMessage->id,
+            'platform' => 'telegram',
+            'platform_user_id' => $customer->platform_user_id,
+            'category' => 'movie_request',
+            'title' => 'Filter test open',
+            'status' => 'open',
+            'priority' => 'high',
+            'source_text' => 'test',
+            'source_metadata' => ['source' => 'test'],
+        ]);
+
+        SupportCase::create([
+            'customer_id' => $customer->id,
+            'conversation_id' => $conversation->id,
+            'message_id' => $textMessage->id,
+            'platform' => 'telegram',
+            'platform_user_id' => $customer->platform_user_id,
+            'category' => 'complaint',
+            'title' => 'Filter test resolved',
+            'status' => 'resolved',
+            'priority' => 'normal',
+            'source_text' => 'test',
+            'source_metadata' => ['source' => 'test'],
+        ]);
+
+        $this->get('/cases')->assertOk()->assertSee('Filter test open');
+        $this->get('/cases?status=open')->assertOk()->assertSee('Filter test open')->assertDontSee('Filter test resolved');
+        $this->get('/cases?status=resolved')->assertOk()->assertSee('Filter test resolved')->assertDontSee('Filter test open');
+        $this->get('/cases?status=rejected')->assertOk()->assertDontSee('Filter test open');
+        $this->get('/cases?order=oldest')->assertOk();
+        $this->get('/cases?order=newest')->assertOk();
+        $this->get('/cases?status=invalid')->assertOk();
+        $this->get('/cases?q=Filter+test+open')->assertOk()->assertSee('Filter test open');
+
+        $response = $this->get('/cases');
+        $response->assertDontSee('source_metadata');
+    }
 }

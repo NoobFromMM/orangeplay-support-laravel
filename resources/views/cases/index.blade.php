@@ -22,6 +22,15 @@
         .page-header { display:flex; align-items:baseline; justify-content:space-between; gap:12px; margin-bottom: 18px; flex-wrap: wrap; }
         .page-header h1 { font-size: 1.5rem; font-weight: 700; }
         .count { font-size: .8rem; color: #6b7280; background: #e5e7eb; padding: 3px 12px; border-radius: 9999px; }
+        .filter-bar { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:16px; }
+        .filter-btn { padding:5px 14px; border-radius:8px; font-size:.78rem; font-weight:600; border:1px solid #d1d5db; background:#fff; color:#6b7280; cursor:pointer; text-decoration:none; transition:all .15s; }
+        .filter-btn:hover { background:#f3f4f6; }
+        .filter-btn.active { background:#2563eb; color:#fff; border-color:#2563eb; }
+        .filter-select { padding:5px 12px; border-radius:8px; font-size:.78rem; font-weight:600; border:1px solid #d1d5db; background:#fff; color:#374151; cursor:pointer; }
+        .filter-search { padding:5px 12px; border-radius:8px; font-size:.78rem; border:1px solid #d1d5db; background:#fff; color:#374151; min-width:200px; }
+        .filter-search:focus { outline:none; border-color:#2563eb; box-shadow:0 0 0 2px rgba(37,99,235,.15); }
+        .count-badge { display:inline-flex; align-items:center; gap:4px; font-size:.72rem; color:#6b7280; }
+        .count-badge strong { color:#374151; }
         .card { background: #fff; border: 1px solid #e9ecef; border-radius: 12px; overflow: hidden; }
         table { width: 100%; border-collapse: collapse; }
         thead { background: #f9fafb; }
@@ -48,6 +57,7 @@
         @media (max-width: 720px) {
             th:nth-child(4), td:nth-child(4), th:nth-child(5), td:nth-child(5) { display:none; }
             th, td { padding: 12px 10px; }
+            .filter-bar { flex-direction:column; align-items:stretch; }
         }
     </style>
 </head>
@@ -70,14 +80,54 @@
 
         <div class="page-header">
             <h1>Support Cases</h1>
-            <span class="count">{{ $cases->count() }} total</span>
+            <span class="count">{{ $counts['all'] }} total</span>
         </div>
+
+        <form class="filter-bar" method="GET" action="/cases">
+            <a href="/cases" class="filter-btn {{ $status === 'all' ? 'active' : '' }}">All</a>
+            <a href="/cases?status=open&{{ http_build_query(array_filter(['category' => $category !== 'all' ? $category : null, 'priority' => $priority !== 'all' ? $priority : null, 'q' => $q, 'order' => $order !== 'newest' ? $order : null])) }}" class="filter-btn {{ $status === 'open' ? 'active' : '' }}">
+                Open <span class="count-badge"><strong>{{ $counts['open'] }}</strong></span>
+            </a>
+            <a href="/cases?status=resolved&{{ http_build_query(array_filter(['category' => $category !== 'all' ? $category : null, 'priority' => $priority !== 'all' ? $priority : null, 'q' => $q, 'order' => $order !== 'newest' ? $order : null])) }}" class="filter-btn {{ $status === 'resolved' ? 'active' : '' }}">
+                Resolved <span class="count-badge"><strong>{{ $counts['resolved'] }}</strong></span>
+            </a>
+            <a href="/cases?status=rejected&{{ http_build_query(array_filter(['category' => $category !== 'all' ? $category : null, 'priority' => $priority !== 'all' ? $priority : null, 'q' => $q, 'order' => $order !== 'newest' ? $order : null])) }}" class="filter-btn {{ $status === 'rejected' ? 'active' : '' }}">
+                Rejected <span class="count-badge"><strong>{{ $counts['rejected'] }}</strong></span>
+            </a>
+
+            <select name="category" class="filter-select" onchange="this.form.submit()">
+                <option value="all" {{ $category === 'all' ? 'selected' : '' }}>All Categories</option>
+                @foreach (\App\Models\SupportCase::categoryOptions() as $cat)
+                    <option value="{{ $cat }}" {{ $category === $cat ? 'selected' : '' }}>{{ \App\Models\SupportCase::labelForCategory($cat) }}</option>
+                @endforeach
+            </select>
+
+            <select name="priority" class="filter-select" onchange="this.form.submit()">
+                <option value="all" {{ $priority === 'all' ? 'selected' : '' }}>All Priorities</option>
+                @foreach (\App\Models\SupportCase::priorityOptions() as $pri)
+                    <option value="{{ $pri }}" {{ $priority === $pri ? 'selected' : '' }}>{{ \App\Models\SupportCase::labelForPriority($pri) }}</option>
+                @endforeach
+            </select>
+
+            <select name="order" class="filter-select" onchange="this.form.submit()">
+                <option value="newest" {{ $order === 'newest' ? 'selected' : '' }}>Newest</option>
+                <option value="oldest" {{ $order === 'oldest' ? 'selected' : '' }}>Oldest</option>
+            </select>
+
+            <input type="text" name="q" class="filter-search" placeholder="Search title, customer..." value="{{ e($q) }}">
+            @if ($status !== 'all') <input type="hidden" name="status" value="{{ $status }}"> @endif
+            @if ($category !== 'all') <input type="hidden" name="category" value="{{ $category }}"> @endif
+            @if ($priority !== 'all') <input type="hidden" name="priority" value="{{ $priority }}"> @endif
+            @if ($order !== 'newest') <input type="hidden" name="order" value="{{ $order }}"> @endif
+            <button type="submit" class="filter-btn" style="background:#2563eb;color:#fff;border-color:#2563eb">Search</button>
+            <a href="/cases" class="filter-btn">Reset</a>
+        </form>
 
         <div class="card">
             @if ($cases->isEmpty())
                 <div class="empty">
-                    <h2>No cases yet</h2>
-                    <p>Create one from a customer message inside a conversation.</p>
+                    <h2>No cases found</h2>
+                    <p>{{ $q ? 'Try a different search term or clear filters.' : 'Create one from a customer message inside a conversation.' }}</p>
                 </div>
             @else
                 <table>
